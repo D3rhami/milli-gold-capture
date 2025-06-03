@@ -3,6 +3,7 @@ import os
 import time
 from datetime import datetime
 
+import jdatetime
 import pytz
 import requests
 from dotenv import load_dotenv
@@ -127,9 +128,10 @@ def push_csv_to_github(filename, content, sha=None):
     }
 
     encoded_content = base64.b64encode(content.encode('utf-8')).decode('utf-8')
+    price = content.strip().splitlines()[-1].split(',')[0]
 
     data = {
-            'message': f'Update {filename}',
+            'message': jali_msg(price),
             'content': encoded_content
     }
 
@@ -204,11 +206,27 @@ def process_gold_data():
         log_error(error_msg)
 
 
+def jali_msg(price):
+    tehran_now = get_tehran_datetime()
+    j_now = jdatetime.datetime.fromgregorian(datetime=tehran_now)
+
+    day_name = j_now.strftime('%A')
+    date_str = j_now.strftime('%-d %B %Y')
+
+    return f"📆 {day_name} {date_str} 🪙{price} . add by server"
+
+
 def main():
+    while True:
         try:
             process_gold_data()
+            time.sleep(60)
         except KeyboardInterrupt:
             _print("Stopping gold price collector...")
+            break
+        except Exception as e:
+            log_error(f"Unexpected error in main loop: {e}")
+            time.sleep(60)
 
 
 if __name__ == "__main__":
