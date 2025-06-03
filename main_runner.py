@@ -1,5 +1,6 @@
 import base64
 import os
+import time
 from datetime import datetime
 
 import pytz
@@ -8,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEBUG = True
+DEBUG = False
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 REPO_OWNER = 'D3rhami'
 REPO_NAME = 'milli-gold-capture'
@@ -204,7 +205,16 @@ def process_gold_data():
 
 
 def main():
-    process_gold_data()
+    while True:
+        try:
+            process_gold_data()
+            time.sleep(60)
+        except KeyboardInterrupt:
+            _print("Stopping gold price collector...")
+            break
+        except Exception as e:
+            log_error(f"Unexpected error in main loop: {e}")
+            time.sleep(60)
 
 
 if __name__ == "__main__":
