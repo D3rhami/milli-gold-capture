@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قیمت طلا</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <style>
+        body {
+            font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;
+            background-color: #f8f9fa;
+        }
+        .price-card {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-top: 20px;
+        }
+        .time-filter {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            justify-content: center;
+        }
+        .time-filter button {
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        .time-filter button:hover {
+            background-color: #e9ecef;
+        }
+        .time-filter button.active {
+            background-color: #0d6efd;
+            color: white;
+        }
+        #goldChart {
+            height: 400px !important;
+            position: relative;
+        }
+        .price-info {
+            background: linear-gradient(45deg, #0d6efd, #0a58ca);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .price-info h2 {
+            margin: 0;
+            font-weight: bold;
+        }
+        .price-info .current-price {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .price-info .price-range {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .last-update {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.8);
+            margin-top: 10px;
+        }
+        .chart-container {
+            position: relative;
+            margin-top: 20px;
+        }
+        .crosshair-label {
+            position: absolute;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="price-card">
+            <div class="price-info">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h2>قیمت طلای ۱۸ عیار</h2>
+                        <div class="current-price">{{ latest_price }} تومان</div>
+                        <div class="price-range">
+                            <span>کمترین: {{ min_price }} تومان</span>
+                            <span class="mx-2">|</span>
+                            <span>بیشترین: {{ max_price }} تومان</span>
+                        </div>
+                        <div class="last-update">
+                            آخرین به‌روزرسانی: {{ latest_update.strftime('%Y-%m-%d %H:%M:%S') }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="time-filter">
+                <button class="active" data-interval="1d">۱ روز</button>
+                <button data-interval="5d">۵ روز</button>
+                <button data-interval="1m">۱ ماه</button>
+                <button data-interval="3m">۳ ماه</button>
+                <button data-interval="6m">۶ ماه</button>
+                <button data-interval="1y">۱ سال</button>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="goldChart"></canvas>
+                <div class="crosshair-label" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let chart;
+        const crosshairLabel = document.querySelector('.crosshair-label');
+
+        async function fetchData() {
+            const response = await fetch('/api/data');
+            const data = await response.json();
+            return data;
+        }
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('fa-IR').format(price) + ' تومان';
+        }
+
+        function formatDate(date) {
+            return new Intl.DateTimeFormat('fa-IR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }).format(date);
+        }
+
+        async function initChart() {
+            const data = await fetchData();
+            const ctx = document.getElementById('goldChart').getContext('2d');
+            
+            const prices = data.map(d => d.price18);
+            const dates = data.map(d => new Date(d.date));
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'قیمت طلا',
+                        data: prices,
+                        borderColor: '#0d6efd',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 0,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            enabled: false,
+                            external: function(context) {
+                                const tooltipModel = context.tooltip;
+                                if (tooltipModel.opacity === 0) {
+                                    crosshairLabel.style.display = 'none';
+                                    return;
+                                }
+
+                                const position = context.chart.canvas.getBoundingClientRect();
+                                const dataPoint = tooltipModel.dataPoints[0];
+                                const price = dataPoint.raw;
+                                const date = new Date(dataPoint.label);
+
+                                crosshairLabel.style.display = 'block';
+                                crosshairLabel.style.left = position.left + tooltipModel.caretX + 'px';
+                                crosshairLabel.style.top = position.top + tooltipModel.caretY - 40 + 'px';
+                                crosshairLabel.innerHTML = `
+                                    <div>${formatDate(date)}</div>
+                                    <div>${formatPrice(price)}</div>
+                                `;
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'time',
+                            time: {
+                                unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            ticks: {
+                                maxRotation: 0,
+                                font: {
+                                    family: 'Vazirmatn'
+                                }
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return formatPrice(value);
+                                },
+                                font: {
+                                    family: 'Vazirmatn'
+                                }
+                            },
+                            grid: {
+                                display: true,
+                                color: 'rgba(0,0,0,0.05)'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Add vertical crosshair line
+            const verticalLine = {
+                id: 'verticalLine',
+                beforeDraw: (chart, args, options) => {
+                    if (chart.tooltip._active && chart.tooltip._active.length) {
+                        const activePoint = chart.tooltip._active[0];
+                        const ctx = chart.ctx;
+                        const x = activePoint.element.x;
+                        const topY = chart.scales.y.top;
+                        const bottomY = chart.scales.y.bottom;
+
+                        ctx.save();
+                        ctx.beginPath();
+                        ctx.moveTo(x, topY);
+                        ctx.lineTo(x, bottomY);
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                        ctx.setLineDash([5, 5]);
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                }
+            };
+
+            chart.options.plugins.verticalLine = verticalLine;
+            chart.update();
+        }
+
+        document.addEventListener('DOMContentLoaded', initChart);
+
+        // Add click handlers for time filter buttons
+        document.querySelectorAll('.time-filter button').forEach(button => {
+            button.addEventListener('click', function() {
+                document.querySelectorAll('.time-filter button').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                // TODO: Implement time filtering
+            });
+        });
+    </script>
+</body>
+</html> 
