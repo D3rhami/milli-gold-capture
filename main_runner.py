@@ -207,7 +207,6 @@ def process_gold_data():
 def main():
         try:
             process_gold_data()
-            time.sleep(60)
         except KeyboardInterrupt:
             _print("Stopping gold price collector...")
 
