@@ -13,10 +13,39 @@ class GoldPriceTracker {
         this.progressInterval = null;
         this.currentZoomLevel = 1;
 
+        // Configure moment-jalaali
+        moment.loadPersian({
+            usePersianDigits: true,
+            dialect: 'persian-modern'
+        });
+
         this.initChart();
         this.setupEventListeners();
         this.loadData();
         this.startDataRefreshCycle();
+    }
+
+    toPersianNumbers(str) {
+        const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+        return str.toString().replace(/[0-9]/g, x => persianNumbers[x]);
+    }
+
+    formatDateByPeriod(date, period) {
+        const m = moment(date);
+        const timeStr = this.toPersianNumbers(m.format('HH:mm'));
+        const dateStr = m.format('dddd jD jMMMM jYYYY')
+            .replace(/[0-9]/g, x => String.fromCharCode(x.charCodeAt(0) + 1728));
+        return `${timeStr} - ${dateStr}`;
+    }
+
+    formatAxisDate(date, period) {
+        const m = moment(date);
+        if (period === '1d') {
+            return this.toPersianNumbers(m.format('HH:mm'));
+        } else {
+            return m.format('jD jMMMM')
+                .replace(/[0-9]/g, x => String.fromCharCode(x.charCodeAt(0) + 1728));
+        }
     }
 
     startDataRefreshCycle() {
@@ -201,24 +230,6 @@ class GoldPriceTracker {
         changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
     }
 
-    formatDateByPeriod(date, period) {
-        const m = moment(date);
-        if (period === '1d') {
-            return `${m.format('HH:mm')} - ${m.format('jdddd jD jMMMM jYYYY')}`;
-        } else {
-            return `${m.format('HH:mm')} - ${m.format('jdddd jD jMMMM jYYYY')}`;
-        }
-    }
-
-    formatAxisDate(date, period) {
-        const m = moment(date);
-        if (period === '1d') {
-            return m.format('HH:mm');
-        } else {
-            return m.format('jD jMMMM');
-        }
-    }
-
     calculateYAxisSteps(min, max) {
         const range = max - min;
         const magnitude = Math.pow(10, Math.floor(Math.log10(range)));
@@ -311,6 +322,11 @@ class GoldPriceTracker {
                 scales: {
                     x: {
                         type: 'time',
+                        adapters: {
+                            date: {
+                                locale: 'fa'
+                            }
+                        },
                         time: {
                             parser: 'YYYY-MM-DD HH:mm:ss',
                             unit: 'hour',
@@ -581,15 +597,18 @@ class GoldPriceTracker {
         this.chart.update('none');
     }
 
-    formatPrice(price) {
-        if (typeof price !== 'number' || isNaN(price)) return '-';
-        return price.toLocaleString('fa-IR') + ' ریال';
-    }
-
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
-        const jalaliDate = moment(this.lastDataTimestamp).format('jYYYY/jMM/jDD HH:mm:ss');
-        document.getElementById('lastUpdate').textContent = jalaliDate;
+        const m = moment(this.lastDataTimestamp);
+        const dateStr = m.format('dddd jD jMMMM jYYYY')
+            .replace(/[0-9]/g, x => String.fromCharCode(x.charCodeAt(0) + 1728));
+        const timeStr = this.toPersianNumbers(m.format('HH:mm:ss'));
+        document.getElementById('lastUpdate').textContent = `${dateStr} ${timeStr}`;
+    }
+
+    formatPrice(price) {
+        if (typeof price !== 'number' || isNaN(price)) return '-';
+        return this.toPersianNumbers(price.toLocaleString('fa-IR')) + ' ریال';
     }
 
     showNoDataMessage() {
