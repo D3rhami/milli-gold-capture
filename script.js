@@ -6,7 +6,7 @@ class GoldPriceTracker {
         this.chart = null;
         this.rawData = [];
         this.currentPeriod = '1d';
-        this.baseUrl = '../database/';
+        this.baseUrl = './database/';
         this.availableDates = [];
         this.lastDataTimestamp = null;
         this.isLoading = false;
