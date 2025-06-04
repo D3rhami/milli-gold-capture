@@ -1,5 +1,6 @@
 // Initialize moment locale and configurations
 moment.locale('fa');
+window.moment = moment;
 
 class GoldPriceTracker {
     constructor() {
@@ -32,19 +33,19 @@ class GoldPriceTracker {
 
     formatDateByPeriod(date, period) {
         const m = moment(date);
-        const timeStr = this.toPersianNumbers(m.format('HH:mm'));
-        const dateStr = m.format('dddd jD jMMMM jYYYY')
-            .replace(/[0-9]/g, x => String.fromCharCode(x.charCodeAt(0) + 1728));
-        return `${timeStr} - ${dateStr}`;
+        if (period === '1d') {
+            return m.format('HH:mm - dddd jDD jMMMM jYYYY');
+        } else {
+            return m.format('HH:mm - dddd jDD jMMMM jYYYY');
+        }
     }
 
     formatAxisDate(date, period) {
         const m = moment(date);
         if (period === '1d') {
-            return this.toPersianNumbers(m.format('HH:mm'));
+            return m.format('HH:mm');
         } else {
-            return m.format('jD jMMMM')
-                .replace(/[0-9]/g, x => String.fromCharCode(x.charCodeAt(0) + 1728));
+            return m.format('jDD jMMMM');
         }
     }
 
@@ -265,6 +266,26 @@ class GoldPriceTracker {
         const ctx = document.getElementById('priceChart').getContext('2d');
         Chart.defaults.font.family = 'Vazir';
 
+        // Register adapter for moment-jalaali
+        Chart.register({
+            id: 'moment-jalaali',
+            _date: moment,
+            formats: () => ({
+                datetime: 'jYYYY/jMM/jDD HH:mm:ss',
+                millisecond: 'HH:mm:ss.SSS',
+                second: 'HH:mm:ss',
+                minute: 'HH:mm',
+                hour: 'HH:mm',
+                day: 'jDD jMMMM',
+                week: 'jDD jMMMM',
+                month: 'jMMMM jYYYY',
+                quarter: 'jQ - jYYYY',
+                year: 'jYYYY'
+            }),
+            parse: (value) => moment(value).toDate(),
+            format: (time, format) => moment(time).format(format)
+        });
+
         this.chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -322,24 +343,22 @@ class GoldPriceTracker {
                 scales: {
                     x: {
                         type: 'time',
-                        adapters: {
-                            date: {
-                                locale: 'fa'
-                            }
-                        },
                         time: {
-                            parser: 'YYYY-MM-DD HH:mm:ss',
+                            parser: 'jYYYY/jMM/jDD HH:mm:ss',
                             unit: 'hour',
                             stepSize: 1,
                             displayFormats: {
-                                millisecond: 'HH:mm:ss',
+                                millisecond: 'HH:mm:ss.SSS',
                                 second: 'HH:mm:ss',
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'jD jMMMM',
-                                week: 'jD jMMMM',
+                                day: 'jDD jMMMM',
+                                week: 'jDD jMMMM',
                                 month: 'jMMMM jYYYY'
                             }
+                        },
+                        adapters: {
+                            date: moment
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
@@ -600,10 +619,7 @@ class GoldPriceTracker {
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
         const m = moment(this.lastDataTimestamp);
-        const dateStr = m.format('dddd jD jMMMM jYYYY')
-            .replace(/[0-9]/g, x => String.fromCharCode(x.charCodeAt(0) + 1728));
-        const timeStr = this.toPersianNumbers(m.format('HH:mm:ss'));
-        document.getElementById('lastUpdate').textContent = `${dateStr} ${timeStr}`;
+        document.getElementById('lastUpdate').textContent = m.format('dddd jDD jMMMM jYYYY HH:mm:ss');
     }
 
     formatPrice(price) {
