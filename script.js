@@ -11,6 +11,7 @@ class GoldPriceTracker {
         this.lastDataTimestamp = null;
         this.isLoading = false;
         this.progressInterval = null;
+        this.currentZoomLevel = 1; // Track zoom level
 
         this.initChart();
         this.setupEventListeners();
@@ -200,6 +201,14 @@ class GoldPriceTracker {
         changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
     }
 
+    formatDateByPeriod(date, period) {
+        if (period === '1d') {
+            return moment(date).format('HH:mm');
+        } else {
+            return moment(date).format('HH:mm dddd jD jMMMM jYYYY');
+        }
+    }
+
     initChart() {
         const ctx = document.getElementById('priceChart').getContext('2d');
 
@@ -208,7 +217,7 @@ class GoldPriceTracker {
             data: {
                 labels: [],
                 datasets: [{
-                    label: 'قیمت طلا (تومان)',
+                    label: 'قیمت طلا (ریال)',
                     data: [],
                     borderColor: '#FFD700',
                     backgroundColor: 'rgba(255, 215, 0, 0.1)',
@@ -231,25 +240,28 @@ class GoldPriceTracker {
                     tooltip: {
                         mode: 'nearest',
                         intersect: false,
-                        callbacks: {
-                            label: (context) => {
-                                return `قیمت: ${this.formatPrice(context.parsed.y)}`;
-                            },
-                            title: (context) => {
-                                const date = new Date(context[0].parsed.x);
-                                return moment(date).format('jYYYY/jMM/jDD HH:mm');
-                            }
+                        padding: 15,
+                        titleFont: {
+                            size: 16,
+                            family: 'Vazir'
+                        },
+                        bodyFont: {
+                            size: 14,
+                            family: 'Vazir'
                         },
                         backgroundColor: 'rgba(0, 0, 0, 0.8)',
                         titleColor: '#fff',
                         bodyColor: '#fff',
                         borderColor: '#FFD700',
                         borderWidth: 1,
-                        titleFont: {
-                            family: 'Vazir'
-                        },
-                        bodyFont: {
-                            family: 'Vazir'
+                        callbacks: {
+                            label: (context) => {
+                                return `قیمت: ${this.formatPrice(context.parsed.y)}`;
+                            },
+                            title: (context) => {
+                                const date = new Date(context[0].parsed.x);
+                                return this.formatDateByPeriod(date, this.currentPeriod);
+                            }
                         }
                     }
                 },
@@ -257,11 +269,14 @@ class GoldPriceTracker {
                     x: {
                         type: 'time',
                         time: {
+                            unit: 'hour',
+                            stepSize: 1,
                             displayFormats: {
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'MM/DD',
-                                month: 'YYYY/MM'
+                                day: 'jYYYY/jMM/jDD',
+                                week: 'jYYYY/jMM/jDD',
+                                month: 'jYYYY/jMM'
                             }
                         },
                         grid: {
@@ -270,7 +285,12 @@ class GoldPriceTracker {
                         ticks: {
                             color: '#666',
                             font: {
-                                family: 'Vazir'
+                                family: 'Vazir',
+                                size: 12
+                            },
+                            callback: (value) => {
+                                const date = new Date(value);
+                                return this.formatDateByPeriod(date, this.currentPeriod);
                             }
                         }
                     },
@@ -281,7 +301,8 @@ class GoldPriceTracker {
                         ticks: {
                             color: '#666',
                             font: {
-                                family: 'Vazir'
+                                family: 'Vazir',
+                                size: 12
                             },
                             callback: (value) => this.formatPrice(value)
                         }
@@ -295,9 +316,6 @@ class GoldPriceTracker {
                     point: {
                         hoverRadius: 6
                     }
-                },
-                onHover: (event, activeElements) => {
-                    event.native.target.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
                 }
             }
         });
@@ -456,16 +474,40 @@ class GoldPriceTracker {
 
     handleZoom(direction) {
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
-        const currentStep = this.calculateStep(filteredData.length, this.currentPeriod);
-
-        let newStep;
+        
         if (direction === 'in') {
-            newStep = Math.max(1, Math.floor(currentStep * 0.7));
+            this.currentZoomLevel = Math.min(4, this.currentZoomLevel + 1);
         } else {
-            newStep = Math.min(Math.floor(filteredData.length / 10), Math.ceil(currentStep * 1.4));
+            this.currentZoomLevel = Math.max(1, this.currentZoomLevel - 1);
         }
 
-        const chartData = this.sampleData(filteredData, newStep);
+        // Adjust time unit and step size based on zoom level and period
+        let timeUnit = 'hour';
+        let stepSize = 1;
+
+        if (this.currentPeriod === '1d') {
+            switch(this.currentZoomLevel) {
+                case 1: stepSize = 60; timeUnit = 'minute'; break; // 1 hour
+                case 2: stepSize = 30; timeUnit = 'minute'; break; // 30 minutes
+                case 3: stepSize = 15; timeUnit = 'minute'; break; // 15 minutes
+                case 4: stepSize = 5; timeUnit = 'minute'; break;  // 5 minutes
+            }
+        } else {
+            switch(this.currentZoomLevel) {
+                case 1: stepSize = 24; timeUnit = 'hour'; break;  // 1 day
+                case 2: stepSize = 12; timeUnit = 'hour'; break;  // 12 hours
+                case 3: stepSize = 6; timeUnit = 'hour'; break;   // 6 hours
+                case 4: stepSize = 3; timeUnit = 'hour'; break;   // 3 hours
+            }
+        }
+
+        // Update chart options
+        this.chart.options.scales.x.time.unit = timeUnit;
+        this.chart.options.scales.x.time.stepSize = stepSize;
+
+        // Update the data with appropriate sampling
+        const step = Math.max(1, Math.floor(filteredData.length / (200 * this.currentZoomLevel)));
+        const chartData = this.sampleData(filteredData, step);
 
         this.chart.data.labels = chartData.map(d => d.date);
         this.chart.data.datasets[0].data = chartData.map(d => ({
@@ -478,7 +520,7 @@ class GoldPriceTracker {
 
     formatPrice(price) {
         if (typeof price !== 'number' || isNaN(price)) return '-';
-        return price.toLocaleString('fa-IR') + ' تومان';
+        return (price * 10).toLocaleString('fa-IR') + ' ریال';
     }
 
     updateLastUpdate() {
