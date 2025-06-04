@@ -31,8 +31,10 @@ class GoldPriceTracker {
 
     startProgressBar() {
         const progressBar = document.getElementById('progressBar');
+        if (!progressBar) return;
+
         let progress = 0;
-        
+
         // Clear any existing interval
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
@@ -51,6 +53,8 @@ class GoldPriceTracker {
 
     resetProgressBar() {
         const progressBar = document.getElementById('progressBar');
+        if (!progressBar) return;
+
         progressBar.style.width = '0%';
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
@@ -59,10 +63,10 @@ class GoldPriceTracker {
 
     async loadData() {
         if (this.isLoading) return;
-        
+
         this.isLoading = true;
         console.log('Site is currently updating...');
-        
+
         try {
             const today = new Date();
             const dates = this.generateDateRange(today, 365);
@@ -77,7 +81,7 @@ class GoldPriceTracker {
                     allData = allData.concat(todayData);
                     this.availableDates.push(todayStr);
                     console.log(`Loaded today's data (${todayStr}): ${todayData.length} records`);
-                    
+
                     // Update display immediately with today's data
                     this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
                     this.lastDataTimestamp = this.rawData[this.rawData.length - 1].date;
@@ -98,7 +102,7 @@ class GoldPriceTracker {
                         allData = allData.concat(data);
                         this.availableDates.push(dateStr);
                         console.log(`Loaded data for ${dateStr}: ${data.length} records`);
-                        
+
                         // Update display periodically as we load more data
                         if (i % 5 === 0 || i === dates.length - 1) {
                             this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -190,15 +194,22 @@ class GoldPriceTracker {
         const lowPrice = todayData.length > 0 ? Math.min(...todayData.map(d => d.price)) : currentPrice;
         const openPrice = todayData.length > 0 ? todayData[0].price : currentPrice;
 
-        document.getElementById('currentPrice').textContent = this.formatPrice(currentPrice);
-        document.getElementById('highPrice').textContent = this.formatPrice(highPrice);
-        document.getElementById('lowPrice').textContent = this.formatPrice(lowPrice);
-        document.getElementById('openPrice').textContent = this.formatPrice(openPrice);
+        const currentPriceEl = document.getElementById('currentPrice');
+        const highPriceEl = document.getElementById('highPrice');
+        const lowPriceEl = document.getElementById('lowPrice');
+        const openPriceEl = document.getElementById('openPrice');
+
+        if (currentPriceEl) currentPriceEl.textContent = this.formatPrice(currentPrice);
+        if (highPriceEl) highPriceEl.textContent = this.formatPrice(highPrice);
+        if (lowPriceEl) lowPriceEl.textContent = this.formatPrice(lowPrice);
+        if (openPriceEl) openPriceEl.textContent = this.formatPrice(openPrice);
 
         const changeElement = document.getElementById('priceChange');
-        const changeText = `${priceChange >= 0 ? '+' : ''}${this.formatPrice(priceChange)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%)`;
-        changeElement.textContent = changeText;
-        changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
+        if (changeElement) {
+            const changeText = `${priceChange >= 0 ? '+' : ''}${this.formatPrice(priceChange)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%)`;
+            changeElement.textContent = changeText;
+            changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
+        }
     }
 
     // Helper function to convert Gregorian date to Persian/Jalali
@@ -288,10 +299,16 @@ class GoldPriceTracker {
     }
 
     initChart() {
-        const ctx = document.getElementById('priceChart').getContext('2d');
+        const ctx = document.getElementById('priceChart');
+        if (!ctx) {
+            console.error('Chart canvas element not found');
+            return;
+        }
+
+        const context = ctx.getContext('2d');
         Chart.defaults.font.family = 'Vazir';
 
-        this.chart = new Chart(ctx, {
+        this.chart = new Chart(context, {
             type: 'line',
             data: {
                 labels: [],
@@ -405,7 +422,7 @@ class GoldPriceTracker {
     }
 
     updateChart() {
-        if (!this.rawData.length) return;
+        if (!this.rawData.length || !this.chart) return;
 
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
         let step = this.calculateStep(filteredData.length, this.currentPeriod);
@@ -525,6 +542,8 @@ class GoldPriceTracker {
         });
 
         const canvas = document.getElementById('priceChart');
+        if (!canvas) return;
+
         let isZooming = false;
 
         canvas.addEventListener('wheel', (e) => {
@@ -557,6 +576,7 @@ class GoldPriceTracker {
 
     handleZoom(direction) {
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
+        if (!this.chart) return;
 
         if (direction === 'in') {
             this.currentZoomLevel = Math.min(4, this.currentZoomLevel + 1);
@@ -626,28 +646,38 @@ class GoldPriceTracker {
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
 
+        const lastUpdateEl = document.getElementById('lastUpdate');
+        if (!lastUpdateEl) return;
+
         const m = moment(this.lastDataTimestamp);
         const persianDay = this.getPersianDayName(this.lastDataTimestamp);
-        const jalaliDay = m.format('jD');
+        let jalaliDate = m.format('jD');
         const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
         const jalaliYear = m.format('jYYYY');
         const time = m.format('HH:mm:ss');
 
-        const jalaliDate = `${persianDay} ${jalaliDay} ${jalaliMonth} ${jalaliYear} - ${time}`;
-        document.getElementById('lastUpdate').textContent = jalaliDate;
+        jalaliDate = `${persianDay} ${jalaliDay} ${jalaliMonth} ${jalaliYear} - ${time}`;
+        lastUpdateEl.textContent = jalaliDate;
     }
 
     showNoDataMessage() {
-        document.getElementById('currentPrice').textContent = 'داده‌ای یافت نشد';
-        document.getElementById('lastUpdate').textContent = 'هیچ داده‌ای در دسترس نیست';
+        const currentPriceEl = document.getElementById('currentPrice');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+
+        if (currentPriceEl) currentPriceEl.textContent = 'داده‌ای یافت نشد';
+        if (lastUpdateEl) lastUpdateEl.textContent = 'هیچ داده‌ای در دسترس نیست';
     }
 
     showErrorMessage() {
-        document.getElementById('currentPrice').textContent = 'خطا در بارگذاری';
-        document.getElementById('lastUpdate').textContent = 'خطا در دریافت داده‌ها';
+        const currentPriceEl = document.getElementById('currentPrice');
+        const lastUpdateEl = document.getElementById('lastUpdate');
+
+        if (currentPriceEl) currentPriceEl.textContent = 'خطا در بارگذاری';
+        if (lastUpdateEl) lastUpdateEl.textContent = 'خطا در دریافت داده‌ها';
     }
 }
 
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new GoldPriceTracker();
 });
