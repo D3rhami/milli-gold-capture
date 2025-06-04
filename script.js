@@ -1,6 +1,7 @@
 // Initialize moment locale and configurations
-let moment;
-moment.locale('fa');
+if (typeof moment !== 'undefined') {
+    moment.locale('fa');
+}
 
 class GoldPriceTracker {
     constructor() {
@@ -203,27 +204,33 @@ class GoldPriceTracker {
     }
 
     formatDateByPeriod(date, period) {
-        const momentDate = moment(date);
         const gregorianDate = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
         const solarDate = farvardin.gregorianToSolar(...gregorianDate, "object");
         const hours = date.getHours().toString().padStart(2, '0');
         const minutes = date.getMinutes().toString().padStart(2, '0');
         
+        const weekDays = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+        const months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+        
+        const weekDay = weekDays[date.getDay()];
+        const monthName = months[solarDate.month - 1];
+        
         if (period === '1d') {
-            return `${hours}:${minutes} - ${solarDate.year}/${solarDate.month}/${solarDate.day}`;
+            return `${hours}:${minutes} - ${weekDay} ${solarDate.day} ${monthName} ${solarDate.year}`;
         } else {
-            return `${hours}:${minutes} - ${solarDate.year}/${solarDate.month}/${solarDate.day}`;
+            return `${hours}:${minutes} - ${weekDay} ${solarDate.day} ${monthName} ${solarDate.year}`;
         }
     }
 
     formatAxisDate(date, period) {
         const gregorianDate = [date.getFullYear(), date.getMonth() + 1, date.getDate()];
         const solarDate = farvardin.gregorianToSolar(...gregorianDate, "object");
+        const months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
         
         if (period === '1d') {
             return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
         } else {
-            return `${solarDate.year}/${solarDate.month}/${solarDate.day}`;
+            return `${solarDate.day} ${months[solarDate.month - 1]}`;
         }
     }
 
@@ -564,7 +571,8 @@ class GoldPriceTracker {
         const hours = date.getHours().toString().padStart(2, '0');
         const minutes = date.getMinutes().toString().padStart(2, '0');
         const seconds = date.getSeconds().toString().padStart(2, '0');
-        document.getElementById('lastUpdate').textContent = `${solarDate.year}/${solarDate.month}/${solarDate.day} ${hours}:${minutes}:${seconds}`;
+        const months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+        document.getElementById('lastUpdate').textContent = `${solarDate.day} ${months[solarDate.month - 1]} ${solarDate.year} ${hours}:${minutes}:${seconds}`;
     }
 
     showNoDataMessage() {
