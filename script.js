@@ -1,4 +1,5 @@
 // Initialize moment locale and configurations
+let moment;
 moment.locale('fa');
 
 class GoldPriceTracker {
