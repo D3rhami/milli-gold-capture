@@ -13,12 +13,6 @@ class GoldPriceTracker {
         this.progressInterval = null;
         this.currentZoomLevel = 1;
 
-        // Configure moment to use Jalaali
-        moment.loadPersian({
-            dialect: 'persian-modern',
-            usePersianDigits: true
-        });
-
         this.initChart();
         this.setupEventListeners();
         this.loadData();
@@ -208,58 +202,57 @@ class GoldPriceTracker {
     }
 
     formatDateByPeriod(date, period) {
-        const momentDate = moment(date);
+        const m = moment(date);
         if (period === '1d') {
-            return momentDate.format('HH:mm - dddd DD MMMM YYYY').replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 1728));
+            return `${m.format('HH:mm')} - ${m.format('jdddd jD jMMMM jYYYY')}`;
         } else {
-            return momentDate.format('HH:mm - dddd DD MMMM YYYY').replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 1728));
+            return `${m.format('HH:mm')} - ${m.format('jdddd jD jMMMM jYYYY')}`;
         }
     }
 
     formatAxisDate(date, period) {
-        const momentDate = moment(date);
+        const m = moment(date);
         if (period === '1d') {
-            return momentDate.format('HH:mm').replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 1728));
+            return m.format('HH:mm');
         } else {
-            return momentDate.format('DD MMMM').replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 1728));
+            return m.format('jD jMMMM');
         }
     }
 
-    calculateNiceScale(min, max, maxTicks = 10) {
-        const range = this.niceNumber(max - min, false);
-        const tickSpacing = this.niceNumber(range / (maxTicks - 1), true);
-        const niceMin = Math.floor(min / tickSpacing) * tickSpacing;
-        const niceMax = Math.ceil(max / tickSpacing) * tickSpacing;
-        
+    calculateYAxisSteps(min, max) {
+        const range = max - min;
+        const magnitude = Math.pow(10, Math.floor(Math.log10(range)));
+        let step;
+
+        if (range / magnitude >= 5) {
+            step = magnitude;
+        } else if (range / magnitude >= 2) {
+            step = magnitude / 2;
+        } else {
+            step = magnitude / 5;
+        }
+
+        const niceMin = Math.floor(min / step) * step;
+        const niceMax = Math.ceil(max / step) * step;
+        const numSteps = Math.round((niceMax - niceMin) / step);
+
+        // Ensure we don't have too many or too few steps
+        if (numSteps > 10) {
+            step = step * 2;
+        } else if (numSteps < 5) {
+            step = step / 2;
+        }
+
         return {
             min: niceMin,
             max: niceMax,
-            step: tickSpacing
+            step: step
         };
-    }
-
-    niceNumber(range, round) {
-        const exponent = Math.floor(Math.log10(range));
-        const fraction = range / Math.pow(10, exponent);
-        let niceFraction;
-
-        if (round) {
-            if (fraction < 1.5) niceFraction = 1;
-            else if (fraction < 3) niceFraction = 2;
-            else if (fraction < 7) niceFraction = 5;
-            else niceFraction = 10;
-        } else {
-            if (fraction <= 1) niceFraction = 1;
-            else if (fraction <= 2) niceFraction = 2;
-            else if (fraction <= 5) niceFraction = 5;
-            else niceFraction = 10;
-        }
-
-        return niceFraction * Math.pow(10, exponent);
     }
 
     initChart() {
         const ctx = document.getElementById('priceChart').getContext('2d');
+        Chart.defaults.font.family = 'Vazir';
 
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -327,14 +320,9 @@ class GoldPriceTracker {
                                 second: 'HH:mm:ss',
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'DD MMMM',
-                                week: 'DD MMMM',
-                                month: 'MMMM YYYY'
-                            }
-                        },
-                        adapters: {
-                            date: {
-                                locale: 'fa'
+                                day: 'jD jMMMM',
+                                week: 'jD jMMMM',
+                                month: 'jMMMM jYYYY'
                             }
                         },
                         grid: {
@@ -344,7 +332,6 @@ class GoldPriceTracker {
                             maxRotation: 0,
                             color: '#666',
                             font: {
-                                family: 'Vazir',
                                 size: 12
                             },
                             callback: (value) => {
@@ -361,7 +348,6 @@ class GoldPriceTracker {
                         ticks: {
                             color: '#666',
                             font: {
-                                family: 'Vazir',
                                 size: 12
                             },
                             callback: (value) => this.formatPrice(value)
@@ -565,18 +551,19 @@ class GoldPriceTracker {
         this.chart.options.scales.x.time.unit = timeUnit;
         this.chart.options.scales.x.time.stepSize = stepSize;
 
-        // Calculate min and max values for Y axis with nice scaling
+        // Calculate min and max values for Y axis
         const prices = filteredData.map(d => d.price);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const padding = (maxPrice - minPrice) * 0.1; // 10% padding
-        
-        const scale = this.calculateNiceScale(
+
+        // Calculate nice scale for Y axis
+        const scale = this.calculateYAxisSteps(
             minPrice - padding,
             maxPrice + padding
         );
 
-        // Update Y axis to ensure data stays in view with nice steps
+        // Update Y axis configuration
         this.chart.options.scales.y.min = scale.min;
         this.chart.options.scales.y.max = scale.max;
         this.chart.options.scales.y.ticks.stepSize = scale.step;
@@ -596,14 +583,12 @@ class GoldPriceTracker {
 
     formatPrice(price) {
         if (typeof price !== 'number' || isNaN(price)) return '-';
-        return (price * 10).toLocaleString('fa-IR') + ' ریال';
+        return price.toLocaleString('fa-IR') + ' ریال';
     }
 
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
-        const jalaliDate = moment(this.lastDataTimestamp)
-            .format('YYYY/MM/DD HH:mm:ss')
-            .replace(/[0-9]/g, d => String.fromCharCode(d.charCodeAt(0) + 1728));
+        const jalaliDate = moment(this.lastDataTimestamp).format('jYYYY/jMM/jDD HH:mm:ss');
         document.getElementById('lastUpdate').textContent = jalaliDate;
     }
 
