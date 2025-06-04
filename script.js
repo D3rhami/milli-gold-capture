@@ -204,20 +204,28 @@ class GoldPriceTracker {
 
     formatDateByPeriod(date, period) {
         const momentDate = moment(date);
+        const gregorianDate = new Date(date);
+        const solarDate = farvardin.gregorianToSolar(gregorianDate.getFullYear(), gregorianDate.getMonth() + 1, gregorianDate.getDate(), 'string');
         if (period === '1d') {
-            return momentDate.format('HH:mm - dddd jD jMMMM jYYYY');
+            return `${momentDate.format('HH:mm')} - ${solarDate}`;
         } else {
-            return momentDate.format('HH:mm - dddd jD jMMMM jYYYY');
+            return `${momentDate.format('HH:mm')} - ${solarDate}`;
         }
     }
 
     formatAxisDate(date, period) {
-        const momentDate = moment(date);
+        const gregorianDate = new Date(date);
+        const solarDate = farvardin.gregorianToSolar(gregorianDate.getFullYear(), gregorianDate.getMonth() + 1, gregorianDate.getDate(), 'string');
         if (period === '1d') {
-            return momentDate.format('HH:mm');
+            return moment(date).format('HH:mm');
         } else {
-            return momentDate.format('jD jMMMM');
+            return solarDate.split('-')[2] + ' ' + this.getPersianMonthName(parseInt(solarDate.split('-')[1]));
         }
+    }
+
+    getPersianMonthName(monthNumber) {
+        const months = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+        return months[monthNumber - 1];
     }
 
     initChart() {
@@ -551,8 +559,10 @@ class GoldPriceTracker {
 
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
-        const jalaliDate = moment(this.lastDataTimestamp).format('jYYYY/jMM/jDD HH:mm:ss');
-        document.getElementById('lastUpdate').textContent = jalaliDate;
+        const gregorianDate = new Date(this.lastDataTimestamp);
+        const solarDate = farvardin.gregorianToSolar(gregorianDate.getFullYear(), gregorianDate.getMonth() + 1, gregorianDate.getDate(), 'string');
+        const timeStr = moment(this.lastDataTimestamp).format('HH:mm:ss');
+        document.getElementById('lastUpdate').textContent = `${timeStr} - ${solarDate}`;
     }
 
     showNoDataMessage() {
