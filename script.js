@@ -6,7 +6,7 @@ class GoldPriceTracker {
         this.chart = null;
         this.rawData = [];
         this.currentPeriod = '1d';
-        this.baseUrl = './database/';
+        this.baseUrl = 'https://raw.githubusercontent.com/D3rhami/milli-gold-capture/master/database/';
         this.availableDates = [];
         this.lastDataTimestamp = null;
         this.isLoading = false;
@@ -65,11 +65,31 @@ class GoldPriceTracker {
         try {
             const today = new Date();
             const dates = this.generateDateRange(today, 365);
-
             let allData = [];
             this.availableDates = [];
 
-            for (let i = 0; i < Math.min(30, dates.length); i++) {
+            // First try to load today's data
+            const todayStr = dates[0];
+            try {
+                const todayData = await this.loadCSVData(todayStr);
+                if (todayData && todayData.length > 0) {
+                    allData = allData.concat(todayData);
+                    this.availableDates.push(todayStr);
+                    console.log(`Loaded today's data (${todayStr}): ${todayData.length} records`);
+                    
+                    // Update display immediately with today's data
+                    this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                    this.lastDataTimestamp = this.rawData[this.rawData.length - 1].date;
+                    this.updatePriceInfo();
+                    this.updateChart();
+                    this.updateLastUpdate();
+                }
+            } catch (error) {
+                console.log(`No data available for today (${todayStr})`);
+            }
+
+            // Then load historical data
+            for (let i = 1; i < Math.min(30, dates.length); i++) {
                 const dateStr = dates[i];
                 try {
                     const data = await this.loadCSVData(dateStr);
@@ -77,6 +97,12 @@ class GoldPriceTracker {
                         allData = allData.concat(data);
                         this.availableDates.push(dateStr);
                         console.log(`Loaded data for ${dateStr}: ${data.length} records`);
+                        
+                        // Update display periodically as we load more data
+                        if (i % 5 === 0 || i === dates.length - 1) {
+                            this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
+                            this.updateChart();
+                        }
                     }
                 } catch (error) {
                     console.log(`No data available for ${dateStr}`);
@@ -85,7 +111,6 @@ class GoldPriceTracker {
 
             if (allData.length > 0) {
                 this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
-                // Store the timestamp of the latest data point
                 this.lastDataTimestamp = this.rawData[this.rawData.length - 1].date;
                 this.updatePriceInfo();
                 this.updateChart();
