@@ -1,8 +1,3 @@
-// Initialize moment locale and configurations
-if (typeof moment !== 'undefined') {
-    moment.locale('fa');
-}
-
 class GoldPriceTracker {
     constructor() {
         this.chart = null;
@@ -302,9 +297,9 @@ class GoldPriceTracker {
                                 second: 'HH:mm:ss',
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'jD jMMMM',
-                                week: 'jD jMMMM',
-                                month: 'jMMMM jYYYY'
+                                day: 'MM/DD',
+                                week: 'MM/DD',
+                                month: 'YYYY/MM'
                             }
                         },
                         grid: {
