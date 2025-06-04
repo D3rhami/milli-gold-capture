@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>قیمت طلا - ردیاب قیمت لحظه‌ای</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-jalaali/0.9.6/moment-jalaali.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/locale/fa.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-moment/1.0.1/chartjs-adapter-moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <h1 class="title">طلا</h1>
+                <p class="subtitle">ردیاب قیمت لحظه‌ای طلا</p>
+            </div>
+
+            <div class="price-info">
+                <div class="price-box">
+                    <div class="price-label">قیمت فعلی</div>
+                    <div class="price-value" id="currentPrice">در حال بارگذاری...</div>
+                    <div class="price-change" id="priceChange"></div>
+                </div>
+
+                <div class="price-box">
+                    <div class="price-label">بالاترین امروز</div>
+                    <div class="price-value" id="highPrice">-</div>
+                </div>
+
+                <div class="price-box">
+                    <div class="price-label">پایین‌ترین امروز</div>
+                    <div class="price-value" id="lowPrice">-</div>
+                </div>
+
+                <div class="price-box">
+                    <div class="price-label">قیمت باز شدن</div>
+                    <div class="price-value" id="openPrice">-</div>
+                </div>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h2 class="chart-title">نمودار قیمت طلا</h2>
+                    <div class="time-buttons">
+                        <button class="time-btn active" data-period="1d">۱ روز</button>
+                        <button class="time-btn" data-period="5d">۵ روز</button>
+                        <button class="time-btn" data-period="1w">۱ هفته</button>
+                        <button class="time-btn" data-period="1m">۱ ماه</button>
+                        <button class="time-btn" data-period="3m">۳ ماه</button>
+                        <button class="time-btn" data-period="6m">۶ ماه</button>
+                        <button class="time-btn" data-period="1y">۱ سال</button>
+                        <button class="time-btn" data-period="all">همه</button>
+                    </div>
+                </div>
+
+                <div class="chart-wrapper">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <div class="last-update">
+                    <div class="status-dot"></div>
+                    <span>آخرین بروزرسانی: <span id="lastUpdate">در حال بارگذاری...</span></span>
+                </div>
+                <div>
+                    منبع داده‌ها: GitHub Repository
+                </div>
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
