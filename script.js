@@ -1,4 +1,4 @@
-moment.locale('fa');
+moment.locale('en');
 
 class GoldPriceTracker {
     constructor() {
@@ -193,95 +193,27 @@ class GoldPriceTracker {
         changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
     }
 
-    gregorianToJalali(date) {
-        let gy = date.getFullYear();
-        const gm = date.getMonth() + 1;
-        const gd = date.getDate();
 
-        let jy, jm, jd;
-
-        const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
-
-        if (gy <= 1600) {
-            jy = 0;
-            gy -= 621;
-        } else {
-            jy = 979;
-            gy -= 1600;
-        }
-
-        if (gm > 2) {
-            const gy2 = gy + 1;
-        }
-
-        const days = (365 * gy) + ((gy / 33) * 8) + (((gy % 33) + 3) / 4) + 78 + gd + ((gm < 3) ? 0 : g_d_m[gm - 1]);
-
-        jy += 33 * (days / 12053);
-        const jd_total = days % 12053;
-
-        jy += 4 * (jd_total / 1461);
-        const jd_remaining = jd_total % 1461;
-
-        if (jd_remaining >= 366) {
-            jy += ((jd_remaining - 1) / 365);
-            jd = (jd_remaining - 1) % 365;
-        } else {
-            jd = jd_remaining;
-        }
-
-        if (jd < 186) {
-            jm = 1 + (jd / 31);
-            jd = 1 + (jd % 31);
-        } else {
-            jm = 7 + ((jd - 186) / 30);
-            jd = 1 + ((jd - 186) % 30);
-        }
-
-        return {
-            year: Math.floor(jy),
-            month: Math.floor(jm),
-            day: Math.floor(jd)
-        };
-    }
-
-    getPersianDayName(date) {
-        const dayNames = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
-        return dayNames[date.getDay()];
-    }
-
-    getPersianMonthName(monthNumber) {
-        const monthNames = [
-            'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-            'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
-        ];
-        return monthNames[monthNumber - 1] || '';
-    }
 
     formatDateByPeriod(date, period) {
-        const jalali = this.gregorianToJalali(date);
-        const persianDay = this.getPersianDayName(date);
-        const jalaliMonth = this.getPersianMonthName(jalali.month);
         const time = date.toTimeString().slice(0, 5);
 
-        console.log('Formatting date:', date, 'Jalali:', jalali, 'Day:', persianDay, 'Month:', jalaliMonth);
+        console.log('Formatting date:', date);
 
         if (period === '1d') {
-            return `${time} - ${persianDay} ${jalali.day} ${jalaliMonth} ${jalali.year}`;
+            return `${time} - ${date.toDateString()}`;
         } else {
-            return `${time} - ${persianDay} ${jalali.day} ${jalaliMonth} ${jalali.year}`;
+            return `${time} - ${date.toDateString()}`;
         }
     }
 
     formatAxisDate(date, period) {
-        const jalali = this.gregorianToJalali(date);
-        const jalaliMonth = this.getPersianMonthName(jalali.month);
-
-        console.log('Formatting axis date:', date, 'Jalali:', jalali);
+        console.log('Formatting axis date:', date);
 
         if (period === '1d') {
             return date.toTimeString().slice(0, 5);
         } else {
-            return `${jalali.day} ${jalaliMonth}`;
+            return date.toLocaleDateString();
         }
     }
 
@@ -652,16 +584,12 @@ class GoldPriceTracker {
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
 
-        const jalali = this.gregorianToJalali(this.lastDataTimestamp);
-        const persianDay = this.getPersianDayName(this.lastDataTimestamp);
-        const jalaliMonth = this.getPersianMonthName(jalali.month);
         const time = this.lastDataTimestamp.toTimeString().slice(0, 8);
+        const dateStr = `${this.lastDataTimestamp.toDateString()} - ${time}`;
 
-        const jalaliDate = `${persianDay} ${jalali.day} ${jalaliMonth} ${jalali.year} - ${time}`;
+        console.log('Updating last update:', this.lastDataTimestamp, 'Display:', dateStr);
 
-        console.log('Updating last update:', this.lastDataTimestamp, 'Jalali:', jalaliDate);
-
-        document.getElementById('lastUpdate').textContent = jalaliDate;
+        document.getElementById('lastUpdate').textContent = dateStr;
     }
 
     showNoDataMessage() {
