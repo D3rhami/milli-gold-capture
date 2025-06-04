@@ -1,4 +1,3 @@
-// Initialize moment locale and configurations
 moment.locale('fa');
 
 class GoldPriceTracker {
@@ -20,7 +19,6 @@ class GoldPriceTracker {
     }
 
     startDataRefreshCycle() {
-        // Update data every minute
         setInterval(() => {
             if (!this.isLoading) {
                 this.startProgressBar();
@@ -31,16 +29,12 @@ class GoldPriceTracker {
 
     startProgressBar() {
         const progressBar = document.getElementById('progressBar');
-        if (!progressBar) return;
-
         let progress = 0;
 
-        // Clear any existing interval
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
         }
 
-        // Update progress every second (60 steps for one minute)
         this.progressInterval = setInterval(() => {
             progress += (100 / 60);
             if (progress > 100) {
@@ -53,8 +47,6 @@ class GoldPriceTracker {
 
     resetProgressBar() {
         const progressBar = document.getElementById('progressBar');
-        if (!progressBar) return;
-
         progressBar.style.width = '0%';
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
@@ -73,7 +65,6 @@ class GoldPriceTracker {
             let allData = [];
             this.availableDates = [];
 
-            // First try to load today's data
             const todayStr = dates[0];
             try {
                 const todayData = await this.loadCSVData(todayStr);
@@ -82,7 +73,6 @@ class GoldPriceTracker {
                     this.availableDates.push(todayStr);
                     console.log(`Loaded today's data (${todayStr}): ${todayData.length} records`);
 
-                    // Update display immediately with today's data
                     this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
                     this.lastDataTimestamp = this.rawData[this.rawData.length - 1].date;
                     this.updatePriceInfo();
@@ -93,7 +83,6 @@ class GoldPriceTracker {
                 console.log(`No data available for today (${todayStr})`);
             }
 
-            // Then load historical data
             for (let i = 1; i < Math.min(30, dates.length); i++) {
                 const dateStr = dates[i];
                 try {
@@ -103,7 +92,6 @@ class GoldPriceTracker {
                         this.availableDates.push(dateStr);
                         console.log(`Loaded data for ${dateStr}: ${data.length} records`);
 
-                        // Update display periodically as we load more data
                         if (i % 5 === 0 || i === dates.length - 1) {
                             this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
                             this.updateChart();
@@ -194,45 +182,73 @@ class GoldPriceTracker {
         const lowPrice = todayData.length > 0 ? Math.min(...todayData.map(d => d.price)) : currentPrice;
         const openPrice = todayData.length > 0 ? todayData[0].price : currentPrice;
 
-        const currentPriceEl = document.getElementById('currentPrice');
-        const highPriceEl = document.getElementById('highPrice');
-        const lowPriceEl = document.getElementById('lowPrice');
-        const openPriceEl = document.getElementById('openPrice');
-
-        if (currentPriceEl) currentPriceEl.textContent = this.formatPrice(currentPrice);
-        if (highPriceEl) highPriceEl.textContent = this.formatPrice(highPrice);
-        if (lowPriceEl) lowPriceEl.textContent = this.formatPrice(lowPrice);
-        if (openPriceEl) openPriceEl.textContent = this.formatPrice(openPrice);
+        document.getElementById('currentPrice').textContent = this.formatPrice(currentPrice);
+        document.getElementById('highPrice').textContent = this.formatPrice(highPrice);
+        document.getElementById('lowPrice').textContent = this.formatPrice(lowPrice);
+        document.getElementById('openPrice').textContent = this.formatPrice(openPrice);
 
         const changeElement = document.getElementById('priceChange');
-        if (changeElement) {
-            const changeText = `${priceChange >= 0 ? '+' : ''}${this.formatPrice(priceChange)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%)`;
-            changeElement.textContent = changeText;
-            changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
+        const changeText = `${priceChange >= 0 ? '+' : ''}${this.formatPrice(priceChange)} (${percentChange >= 0 ? '+' : ''}${percentChange.toFixed(2)}%)`;
+        changeElement.textContent = changeText;
+        changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
+    }
+
+    gregorianToJalali(date) {
+        let gy = date.getFullYear();
+        const gm = date.getMonth() + 1;
+        const gd = date.getDate();
+
+        let jy, jm, jd;
+
+        const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+
+        if (gy <= 1600) {
+            jy = 0;
+            gy -= 621;
+        } else {
+            jy = 979;
+            gy -= 1600;
         }
-    }
 
-    // Helper function to convert Gregorian date to Persian/Jalali
-    toPersianDate(date, format = 'dddd DD MMMM YYYY') {
-        return moment(date).format(format);
-    }
+        if (gm > 2) {
+            const gy2 = gy + 1;
+        }
 
-    // Helper function to get Persian day names
-    getPersianDayName(date) {
-        const dayNames = {
-            'Saturday': 'شنبه',
-            'Sunday': 'یکشنبه',
-            'Monday': 'دوشنبه',
-            'Tuesday': 'سه‌شنبه',
-            'Wednesday': 'چهارشنبه',
-            'Thursday': 'پنج‌شنبه',
-            'Friday': 'جمعه'
+        const days = (365 * gy) + ((gy / 33) * 8) + (((gy % 33) + 3) / 4) + 78 + gd + ((gm < 3) ? 0 : g_d_m[gm - 1]);
+
+        jy += 33 * (days / 12053);
+        const jd_total = days % 12053;
+
+        jy += 4 * (jd_total / 1461);
+        const jd_remaining = jd_total % 1461;
+
+        if (jd_remaining >= 366) {
+            jy += ((jd_remaining - 1) / 365);
+            jd = (jd_remaining - 1) % 365;
+        } else {
+            jd = jd_remaining;
+        }
+
+        if (jd < 186) {
+            jm = 1 + (jd / 31);
+            jd = 1 + (jd % 31);
+        } else {
+            jm = 7 + ((jd - 186) / 30);
+            jd = 1 + ((jd - 186) % 30);
+        }
+
+        return {
+            year: Math.floor(jy),
+            month: Math.floor(jm),
+            day: Math.floor(jd)
         };
-        const englishDay = moment(date).format('dddd');
-        return dayNames[englishDay] || englishDay;
     }
 
-    // Helper function to get Persian month names
+    getPersianDayName(date) {
+        const dayNames = ['یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه', 'شنبه'];
+        return dayNames[date.getDay()];
+    }
+
     getPersianMonthName(monthNumber) {
         const monthNames = [
             'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
@@ -242,28 +258,30 @@ class GoldPriceTracker {
     }
 
     formatDateByPeriod(date, period) {
-        const m = moment(date);
+        const jalali = this.gregorianToJalali(date);
         const persianDay = this.getPersianDayName(date);
-        const jalaliDate = m.format('jD');
-        const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
-        const jalaliYear = m.format('jYYYY');
-        const time = m.format('HH:mm');
+        const jalaliMonth = this.getPersianMonthName(jalali.month);
+        const time = date.toTimeString().slice(0, 5);
+
+        console.log('Formatting date:', date, 'Jalali:', jalali, 'Day:', persianDay, 'Month:', jalaliMonth);
 
         if (period === '1d') {
-            return `${time} - ${persianDay} ${jalaliDate} ${jalaliMonth} ${jalaliYear}`;
+            return `${time} - ${persianDay} ${jalali.day} ${jalaliMonth} ${jalali.year}`;
         } else {
-            return `${time} - ${persianDay} ${jalaliDate} ${jalaliMonth} ${jalaliYear}`;
+            return `${time} - ${persianDay} ${jalali.day} ${jalaliMonth} ${jalali.year}`;
         }
     }
 
     formatAxisDate(date, period) {
-        const m = moment(date);
+        const jalali = this.gregorianToJalali(date);
+        const jalaliMonth = this.getPersianMonthName(jalali.month);
+
+        console.log('Formatting axis date:', date, 'Jalali:', jalali);
+
         if (period === '1d') {
-            return m.format('HH:mm');
+            return date.toTimeString().slice(0, 5);
         } else {
-            const jalaliDay = m.format('jD');
-            const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
-            return `${jalaliDay} ${jalaliMonth}`;
+            return `${jalali.day} ${jalaliMonth}`;
         }
     }
 
@@ -284,7 +302,6 @@ class GoldPriceTracker {
         const niceMax = Math.ceil(max / step) * step;
         const numSteps = Math.round((niceMax - niceMin) / step);
 
-        // Ensure we don't have too many or too few steps
         if (numSteps > 10) {
             step = step * 2;
         } else if (numSteps < 5) {
@@ -299,16 +316,10 @@ class GoldPriceTracker {
     }
 
     initChart() {
-        const ctx = document.getElementById('priceChart');
-        if (!ctx) {
-            console.error('Chart canvas element not found');
-            return;
-        }
-
-        const context = ctx.getContext('2d');
+        const ctx = document.getElementById('priceChart').getContext('2d');
         Chart.defaults.font.family = 'Vazir';
 
-        this.chart = new Chart(context, {
+        this.chart = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: [],
@@ -356,7 +367,10 @@ class GoldPriceTracker {
                                 return `قیمت: ${this.formatPrice(context.parsed.y)}`;
                             },
                             title: (context) => {
-                                const date = new Date(context[0].parsed.x);
+                                const dataIndex = context[0].dataIndex;
+                                const chartData = this.chart.data.datasets[0].data;
+                                const date = new Date(chartData[dataIndex].x);
+                                console.log('Tooltip date:', date);
                                 return this.formatDateByPeriod(date, this.currentPeriod);
                             }
                         }
@@ -422,11 +436,13 @@ class GoldPriceTracker {
     }
 
     updateChart() {
-        if (!this.rawData.length || !this.chart) return;
+        if (!this.rawData.length) return;
 
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
         let step = this.calculateStep(filteredData.length, this.currentPeriod);
         const chartData = this.sampleData(filteredData, step);
+
+        console.log('Updating chart with data:', chartData.length, 'points');
 
         this.chart.data.labels = chartData.map(d => d.date);
         this.chart.data.datasets[0].data = chartData.map(d => ({
@@ -454,7 +470,7 @@ class GoldPriceTracker {
                 startDate = new Date(latestDataTime.getTime() - 7 * 24 * 60 * 60 * 1000);
                 break;
             case '1m':
-                startDate = new Date(latestDataTime.getTime() - 30 * 24 * 60 * 60 * 1000);
+                startDate = new Date(latestDataTime.getTime() - 30 * 24 * 60 * 1000);
                 break;
             case '3m':
                 startDate = new Date(latestDataTime.getTime() - 90 * 24 * 60 * 60 * 1000);
@@ -471,12 +487,11 @@ class GoldPriceTracker {
 
         const filteredData = data.filter(d => d.date >= startDate && d.date <= latestDataTime);
 
-        // If we don't have enough data for the selected period, return empty array
         const periodInDays = (latestDataTime - startDate) / (24 * 60 * 60 * 1000);
         const dataSpanInDays = (filteredData.length > 0) ?
             (filteredData[filteredData.length - 1].date - filteredData[0].date) / (24 * 60 * 60 * 1000) : 0;
 
-        if (dataSpanInDays < periodInDays * 0.5) { // If we have less than 50% of the requested period
+        if (dataSpanInDays < periodInDays * 0.5) {
             return [];
         }
 
@@ -542,8 +557,6 @@ class GoldPriceTracker {
         });
 
         const canvas = document.getElementById('priceChart');
-        if (!canvas) return;
-
         let isZooming = false;
 
         canvas.addEventListener('wheel', (e) => {
@@ -576,7 +589,6 @@ class GoldPriceTracker {
 
     handleZoom(direction) {
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
-        if (!this.chart) return;
 
         if (direction === 'in') {
             this.currentZoomLevel = Math.min(4, this.currentZoomLevel + 1);
@@ -584,48 +596,42 @@ class GoldPriceTracker {
             this.currentZoomLevel = Math.max(1, this.currentZoomLevel - 1);
         }
 
-        // Adjust time unit and step size based on zoom level and period
         let timeUnit = 'hour';
         let stepSize = 1;
 
         if (this.currentPeriod === '1d') {
             switch(this.currentZoomLevel) {
-                case 1: stepSize = 60; timeUnit = 'minute'; break; // 1 hour
-                case 2: stepSize = 30; timeUnit = 'minute'; break; // 30 minutes
-                case 3: stepSize = 15; timeUnit = 'minute'; break; // 15 minutes
-                case 4: stepSize = 1; timeUnit = 'minute'; break;  // 1 minute
+                case 1: stepSize = 60; timeUnit = 'minute'; break;
+                case 2: stepSize = 30; timeUnit = 'minute'; break;
+                case 3: stepSize = 15; timeUnit = 'minute'; break;
+                case 4: stepSize = 1; timeUnit = 'minute'; break;
             }
         } else {
             switch(this.currentZoomLevel) {
-                case 1: stepSize = 24; timeUnit = 'hour'; break;  // 1 day
-                case 2: stepSize = 12; timeUnit = 'hour'; break;  // 12 hours
-                case 3: stepSize = 6; timeUnit = 'hour'; break;   // 6 hours
-                case 4: stepSize = 1; timeUnit = 'hour'; break;   // 1 hour
+                case 1: stepSize = 24; timeUnit = 'hour'; break;
+                case 2: stepSize = 12; timeUnit = 'hour'; break;
+                case 3: stepSize = 6; timeUnit = 'hour'; break;
+                case 4: stepSize = 1; timeUnit = 'hour'; break;
             }
         }
 
-        // Update chart options
         this.chart.options.scales.x.time.unit = timeUnit;
         this.chart.options.scales.x.time.stepSize = stepSize;
 
-        // Calculate min and max values for Y axis
         const prices = filteredData.map(d => d.price);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
-        const padding = (maxPrice - minPrice) * 0.1; // 10% padding
+        const padding = (maxPrice - minPrice) * 0.1;
 
-        // Calculate nice scale for Y axis
         const scale = this.calculateYAxisSteps(
             minPrice - padding,
             maxPrice + padding
         );
 
-        // Update Y axis configuration
         this.chart.options.scales.y.min = scale.min;
         this.chart.options.scales.y.max = scale.max;
         this.chart.options.scales.y.ticks.stepSize = scale.step;
 
-        // Update the data with appropriate sampling
         const step = Math.max(1, Math.floor(filteredData.length / (200 * this.currentZoomLevel)));
         const chartData = this.sampleData(filteredData, step);
 
@@ -646,38 +652,29 @@ class GoldPriceTracker {
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
 
-        const lastUpdateEl = document.getElementById('lastUpdate');
-        if (!lastUpdateEl) return;
-
-        const m = moment(this.lastDataTimestamp);
+        const jalali = this.gregorianToJalali(this.lastDataTimestamp);
         const persianDay = this.getPersianDayName(this.lastDataTimestamp);
-        let jalaliDate = m.format('jD');
-        const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
-        const jalaliYear = m.format('jYYYY');
-        const time = m.format('HH:mm:ss');
+        const jalaliMonth = this.getPersianMonthName(jalali.month);
+        const time = this.lastDataTimestamp.toTimeString().slice(0, 8);
 
-        jalaliDate = `${persianDay} ${jalaliDay} ${jalaliMonth} ${jalaliYear} - ${time}`;
-        lastUpdateEl.textContent = jalaliDate;
+        const jalaliDate = `${persianDay} ${jalali.day} ${jalaliMonth} ${jalali.year} - ${time}`;
+
+        console.log('Updating last update:', this.lastDataTimestamp, 'Jalali:', jalaliDate);
+
+        document.getElementById('lastUpdate').textContent = jalaliDate;
     }
 
     showNoDataMessage() {
-        const currentPriceEl = document.getElementById('currentPrice');
-        const lastUpdateEl = document.getElementById('lastUpdate');
-
-        if (currentPriceEl) currentPriceEl.textContent = 'داده‌ای یافت نشد';
-        if (lastUpdateEl) lastUpdateEl.textContent = 'هیچ داده‌ای در دسترس نیست';
+        document.getElementById('currentPrice').textContent = 'داده‌ای یافت نشد';
+        document.getElementById('lastUpdate').textContent = 'هیچ داده‌ای در دسترس نیست';
     }
 
     showErrorMessage() {
-        const currentPriceEl = document.getElementById('currentPrice');
-        const lastUpdateEl = document.getElementById('lastUpdate');
-
-        if (currentPriceEl) currentPriceEl.textContent = 'خطا در بارگذاری';
-        if (lastUpdateEl) lastUpdateEl.textContent = 'خطا در دریافت داده‌ها';
+        document.getElementById('currentPrice').textContent = 'خطا در بارگذاری';
+        document.getElementById('lastUpdate').textContent = 'خطا در دریافت داده‌ها';
     }
 }
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     new GoldPriceTracker();
 });
