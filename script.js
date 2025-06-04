@@ -202,10 +202,20 @@ class GoldPriceTracker {
     }
 
     formatDateByPeriod(date, period) {
+        const momentDate = moment(date);
         if (period === '1d') {
-            return moment(date).format('HH:mm');
+            return momentDate.format('HH:mm - dddd jD jMMMM jYYYY');
         } else {
-            return moment(date).format('HH:mm dddd jD jMMMM jYYYY');
+            return momentDate.format('HH:mm - dddd jD jMMMM jYYYY');
+        }
+    }
+
+    formatAxisDate(date, period) {
+        const momentDate = moment(date);
+        if (period === '1d') {
+            return momentDate.format('HH:mm');
+        } else {
+            return momentDate.format('jD jMMMM');
         }
     }
 
@@ -243,7 +253,8 @@ class GoldPriceTracker {
                         padding: 15,
                         titleFont: {
                             size: 16,
-                            family: 'Vazir'
+                            family: 'Vazir',
+                            weight: 'bold'
                         },
                         bodyFont: {
                             size: 14,
@@ -272,17 +283,20 @@ class GoldPriceTracker {
                             unit: 'hour',
                             stepSize: 1,
                             displayFormats: {
+                                millisecond: 'HH:mm:ss',
+                                second: 'HH:mm:ss',
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'jYYYY/jMM/jDD',
-                                week: 'jYYYY/jMM/jDD',
-                                month: 'jYYYY/jMM'
+                                day: 'jD jMMMM',
+                                week: 'jD jMMMM',
+                                month: 'jMMMM jYYYY'
                             }
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
                         },
                         ticks: {
+                            maxRotation: 0,
                             color: '#666',
                             font: {
                                 family: 'Vazir',
@@ -290,11 +304,12 @@ class GoldPriceTracker {
                             },
                             callback: (value) => {
                                 const date = new Date(value);
-                                return this.formatDateByPeriod(date, this.currentPeriod);
+                                return this.formatAxisDate(date, this.currentPeriod);
                             }
                         }
                     },
                     y: {
+                        beginAtZero: false,
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
                         },
@@ -490,20 +505,30 @@ class GoldPriceTracker {
                 case 1: stepSize = 60; timeUnit = 'minute'; break; // 1 hour
                 case 2: stepSize = 30; timeUnit = 'minute'; break; // 30 minutes
                 case 3: stepSize = 15; timeUnit = 'minute'; break; // 15 minutes
-                case 4: stepSize = 5; timeUnit = 'minute'; break;  // 5 minutes
+                case 4: stepSize = 1; timeUnit = 'minute'; break;  // 1 minute
             }
         } else {
             switch(this.currentZoomLevel) {
                 case 1: stepSize = 24; timeUnit = 'hour'; break;  // 1 day
                 case 2: stepSize = 12; timeUnit = 'hour'; break;  // 12 hours
                 case 3: stepSize = 6; timeUnit = 'hour'; break;   // 6 hours
-                case 4: stepSize = 3; timeUnit = 'hour'; break;   // 3 hours
+                case 4: stepSize = 1; timeUnit = 'hour'; break;   // 1 hour
             }
         }
 
         // Update chart options
         this.chart.options.scales.x.time.unit = timeUnit;
         this.chart.options.scales.x.time.stepSize = stepSize;
+
+        // Calculate min and max values for Y axis
+        const prices = filteredData.map(d => d.price);
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const padding = (maxPrice - minPrice) * 0.1; // 10% padding
+
+        // Update Y axis to ensure data stays in view
+        this.chart.options.scales.y.min = minPrice - padding;
+        this.chart.options.scales.y.max = maxPrice + padding;
 
         // Update the data with appropriate sampling
         const step = Math.max(1, Math.floor(filteredData.length / (200 * this.currentZoomLevel)));
@@ -525,7 +550,6 @@ class GoldPriceTracker {
 
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
-        
         const jalaliDate = moment(this.lastDataTimestamp).format('jYYYY/jMM/jDD HH:mm:ss');
         document.getElementById('lastUpdate').textContent = jalaliDate;
     }
