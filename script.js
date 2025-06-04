@@ -1,6 +1,5 @@
 // Initialize moment locale and configurations
 moment.locale('fa');
-window.moment = moment;
 
 class GoldPriceTracker {
     constructor() {
@@ -14,39 +13,10 @@ class GoldPriceTracker {
         this.progressInterval = null;
         this.currentZoomLevel = 1;
 
-        // Configure moment-jalaali
-        moment.loadPersian({
-            usePersianDigits: true,
-            dialect: 'persian-modern'
-        });
-
         this.initChart();
         this.setupEventListeners();
         this.loadData();
         this.startDataRefreshCycle();
-    }
-
-    toPersianNumbers(str) {
-        const persianNumbers = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
-        return str.toString().replace(/[0-9]/g, x => persianNumbers[x]);
-    }
-
-    formatDateByPeriod(date, period) {
-        const m = moment(date);
-        if (period === '1d') {
-            return m.format('HH:mm - dddd jDD jMMMM jYYYY');
-        } else {
-            return m.format('HH:mm - dddd jDD jMMMM jYYYY');
-        }
-    }
-
-    formatAxisDate(date, period) {
-        const m = moment(date);
-        if (period === '1d') {
-            return m.format('HH:mm');
-        } else {
-            return m.format('jDD jMMMM');
-        }
     }
 
     startDataRefreshCycle() {
@@ -231,6 +201,61 @@ class GoldPriceTracker {
         changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
     }
 
+    // Helper function to convert Gregorian date to Persian/Jalali
+    toPersianDate(date, format = 'dddd DD MMMM YYYY') {
+        return moment(date).format(format);
+    }
+
+    // Helper function to get Persian day names
+    getPersianDayName(date) {
+        const dayNames = {
+            'Saturday': 'شنبه',
+            'Sunday': 'یکشنبه',
+            'Monday': 'دوشنبه',
+            'Tuesday': 'سه‌شنبه',
+            'Wednesday': 'چهارشنبه',
+            'Thursday': 'پنج‌شنبه',
+            'Friday': 'جمعه'
+        };
+        const englishDay = moment(date).format('dddd');
+        return dayNames[englishDay] || englishDay;
+    }
+
+    // Helper function to get Persian month names
+    getPersianMonthName(monthNumber) {
+        const monthNames = [
+            'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+            'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+        ];
+        return monthNames[monthNumber - 1] || '';
+    }
+
+    formatDateByPeriod(date, period) {
+        const m = moment(date);
+        const persianDay = this.getPersianDayName(date);
+        const jalaliDate = m.format('jD');
+        const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
+        const jalaliYear = m.format('jYYYY');
+        const time = m.format('HH:mm');
+
+        if (period === '1d') {
+            return `${time} - ${persianDay} ${jalaliDate} ${jalaliMonth} ${jalaliYear}`;
+        } else {
+            return `${time} - ${persianDay} ${jalaliDate} ${jalaliMonth} ${jalaliYear}`;
+        }
+    }
+
+    formatAxisDate(date, period) {
+        const m = moment(date);
+        if (period === '1d') {
+            return m.format('HH:mm');
+        } else {
+            const jalaliDay = m.format('jD');
+            const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
+            return `${jalaliDay} ${jalaliMonth}`;
+        }
+    }
+
     calculateYAxisSteps(min, max) {
         const range = max - min;
         const magnitude = Math.pow(10, Math.floor(Math.log10(range)));
@@ -265,26 +290,6 @@ class GoldPriceTracker {
     initChart() {
         const ctx = document.getElementById('priceChart').getContext('2d');
         Chart.defaults.font.family = 'Vazir';
-
-        // Register adapter for moment-jalaali
-        Chart.register({
-            id: 'moment-jalaali',
-            _date: moment,
-            formats: () => ({
-                datetime: 'jYYYY/jMM/jDD HH:mm:ss',
-                millisecond: 'HH:mm:ss.SSS',
-                second: 'HH:mm:ss',
-                minute: 'HH:mm',
-                hour: 'HH:mm',
-                day: 'jDD jMMMM',
-                week: 'jDD jMMMM',
-                month: 'jMMMM jYYYY',
-                quarter: 'jQ - jYYYY',
-                year: 'jYYYY'
-            }),
-            parse: (value) => moment(value).toDate(),
-            format: (time, format) => moment(time).format(format)
-        });
 
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -344,21 +349,18 @@ class GoldPriceTracker {
                     x: {
                         type: 'time',
                         time: {
-                            parser: 'jYYYY/jMM/jDD HH:mm:ss',
+                            parser: 'YYYY-MM-DD HH:mm:ss',
                             unit: 'hour',
                             stepSize: 1,
                             displayFormats: {
-                                millisecond: 'HH:mm:ss.SSS',
+                                millisecond: 'HH:mm:ss',
                                 second: 'HH:mm:ss',
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'jDD jMMMM',
-                                week: 'jDD jMMMM',
-                                month: 'jMMMM jYYYY'
+                                day: 'DD MMM',
+                                week: 'DD MMM',
+                                month: 'MMM YYYY'
                             }
-                        },
-                        adapters: {
-                            date: moment
                         },
                         grid: {
                             color: 'rgba(0, 0, 0, 0.05)'
@@ -451,12 +453,12 @@ class GoldPriceTracker {
         }
 
         const filteredData = data.filter(d => d.date >= startDate && d.date <= latestDataTime);
-        
+
         // If we don't have enough data for the selected period, return empty array
         const periodInDays = (latestDataTime - startDate) / (24 * 60 * 60 * 1000);
-        const dataSpanInDays = (filteredData.length > 0) ? 
+        const dataSpanInDays = (filteredData.length > 0) ?
             (filteredData[filteredData.length - 1].date - filteredData[0].date) / (24 * 60 * 60 * 1000) : 0;
-        
+
         if (dataSpanInDays < periodInDays * 0.5) { // If we have less than 50% of the requested period
             return [];
         }
@@ -555,7 +557,7 @@ class GoldPriceTracker {
 
     handleZoom(direction) {
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
-        
+
         if (direction === 'in') {
             this.currentZoomLevel = Math.min(4, this.currentZoomLevel + 1);
         } else {
@@ -616,15 +618,23 @@ class GoldPriceTracker {
         this.chart.update('none');
     }
 
-    updateLastUpdate() {
-        if (!this.lastDataTimestamp) return;
-        const m = moment(this.lastDataTimestamp);
-        document.getElementById('lastUpdate').textContent = m.format('dddd jDD jMMMM jYYYY HH:mm:ss');
-    }
-
     formatPrice(price) {
         if (typeof price !== 'number' || isNaN(price)) return '-';
-        return this.toPersianNumbers(price.toLocaleString('fa-IR')) + ' ریال';
+        return price.toLocaleString('fa-IR') + ' ریال';
+    }
+
+    updateLastUpdate() {
+        if (!this.lastDataTimestamp) return;
+
+        const m = moment(this.lastDataTimestamp);
+        const persianDay = this.getPersianDayName(this.lastDataTimestamp);
+        const jalaliDay = m.format('jD');
+        const jalaliMonth = this.getPersianMonthName(parseInt(m.format('jM')));
+        const jalaliYear = m.format('jYYYY');
+        const time = m.format('HH:mm:ss');
+
+        const jalaliDate = `${persianDay} ${jalaliDay} ${jalaliMonth} ${jalaliYear} - ${time}`;
+        document.getElementById('lastUpdate').textContent = jalaliDate;
     }
 
     showNoDataMessage() {
@@ -640,4 +650,4 @@ class GoldPriceTracker {
 
 document.addEventListener('DOMContentLoaded', () => {
     new GoldPriceTracker();
-}); 
+});
