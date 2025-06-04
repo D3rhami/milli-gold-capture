@@ -1,4 +1,6 @@
-moment.locale('en');
+// Initialize moment locale and configurations
+let moment;
+moment.locale('fa');
 
 class GoldPriceTracker {
     constructor() {
@@ -10,7 +12,7 @@ class GoldPriceTracker {
         this.lastDataTimestamp = null;
         this.isLoading = false;
         this.progressInterval = null;
-        this.currentZoomLevel = 1;
+        this.currentZoomLevel = 1; // Track zoom level
 
         this.initChart();
         this.setupEventListeners();
@@ -19,6 +21,7 @@ class GoldPriceTracker {
     }
 
     startDataRefreshCycle() {
+        // Update data every minute
         setInterval(() => {
             if (!this.isLoading) {
                 this.startProgressBar();
@@ -30,11 +33,13 @@ class GoldPriceTracker {
     startProgressBar() {
         const progressBar = document.getElementById('progressBar');
         let progress = 0;
-
+        
+        // Clear any existing interval
         if (this.progressInterval) {
             clearInterval(this.progressInterval);
         }
 
+        // Update progress every second (60 steps for one minute)
         this.progressInterval = setInterval(() => {
             progress += (100 / 60);
             if (progress > 100) {
@@ -55,16 +60,17 @@ class GoldPriceTracker {
 
     async loadData() {
         if (this.isLoading) return;
-
+        
         this.isLoading = true;
         console.log('Site is currently updating...');
-
+        
         try {
             const today = new Date();
             const dates = this.generateDateRange(today, 365);
             let allData = [];
             this.availableDates = [];
 
+            // First try to load today's data
             const todayStr = dates[0];
             try {
                 const todayData = await this.loadCSVData(todayStr);
@@ -72,7 +78,8 @@ class GoldPriceTracker {
                     allData = allData.concat(todayData);
                     this.availableDates.push(todayStr);
                     console.log(`Loaded today's data (${todayStr}): ${todayData.length} records`);
-
+                    
+                    // Update display immediately with today's data
                     this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
                     this.lastDataTimestamp = this.rawData[this.rawData.length - 1].date;
                     this.updatePriceInfo();
@@ -83,6 +90,7 @@ class GoldPriceTracker {
                 console.log(`No data available for today (${todayStr})`);
             }
 
+            // Then load historical data
             for (let i = 1; i < Math.min(30, dates.length); i++) {
                 const dateStr = dates[i];
                 try {
@@ -91,7 +99,8 @@ class GoldPriceTracker {
                         allData = allData.concat(data);
                         this.availableDates.push(dateStr);
                         console.log(`Loaded data for ${dateStr}: ${data.length} records`);
-
+                        
+                        // Update display periodically as we load more data
                         if (i % 5 === 0 || i === dates.length - 1) {
                             this.rawData = allData.sort((a, b) => new Date(a.date) - new Date(b.date));
                             this.updateChart();
@@ -193,63 +202,26 @@ class GoldPriceTracker {
         changeElement.className = `price-change ${priceChange >= 0 ? 'positive' : 'negative'}`;
     }
 
-
-
     formatDateByPeriod(date, period) {
-        const time = date.toTimeString().slice(0, 5);
-
-        console.log('Formatting date:', date);
-
+        const momentDate = moment(date);
         if (period === '1d') {
-            return `${time} - ${date.toDateString()}`;
+            return momentDate.format('HH:mm - dddd jD jMMMM jYYYY');
         } else {
-            return `${time} - ${date.toDateString()}`;
+            return momentDate.format('HH:mm - dddd jD jMMMM jYYYY');
         }
     }
 
     formatAxisDate(date, period) {
-        console.log('Formatting axis date:', date);
-
+        const momentDate = moment(date);
         if (period === '1d') {
-            return date.toTimeString().slice(0, 5);
+            return momentDate.format('HH:mm');
         } else {
-            return date.toLocaleDateString();
+            return momentDate.format('jD jMMMM');
         }
-    }
-
-    calculateYAxisSteps(min, max) {
-        const range = max - min;
-        const magnitude = Math.pow(10, Math.floor(Math.log10(range)));
-        let step;
-
-        if (range / magnitude >= 5) {
-            step = magnitude;
-        } else if (range / magnitude >= 2) {
-            step = magnitude / 2;
-        } else {
-            step = magnitude / 5;
-        }
-
-        const niceMin = Math.floor(min / step) * step;
-        const niceMax = Math.ceil(max / step) * step;
-        const numSteps = Math.round((niceMax - niceMin) / step);
-
-        if (numSteps > 10) {
-            step = step * 2;
-        } else if (numSteps < 5) {
-            step = step / 2;
-        }
-
-        return {
-            min: niceMin,
-            max: niceMax,
-            step: step
-        };
     }
 
     initChart() {
         const ctx = document.getElementById('priceChart').getContext('2d');
-        Chart.defaults.font.family = 'Vazir';
 
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -299,10 +271,7 @@ class GoldPriceTracker {
                                 return `قیمت: ${this.formatPrice(context.parsed.y)}`;
                             },
                             title: (context) => {
-                                const dataIndex = context[0].dataIndex;
-                                const chartData = this.chart.data.datasets[0].data;
-                                const date = new Date(chartData[dataIndex].x);
-                                console.log('Tooltip date:', date);
+                                const date = new Date(context[0].parsed.x);
                                 return this.formatDateByPeriod(date, this.currentPeriod);
                             }
                         }
@@ -312,7 +281,6 @@ class GoldPriceTracker {
                     x: {
                         type: 'time',
                         time: {
-                            parser: 'YYYY-MM-DD HH:mm:ss',
                             unit: 'hour',
                             stepSize: 1,
                             displayFormats: {
@@ -320,9 +288,9 @@ class GoldPriceTracker {
                                 second: 'HH:mm:ss',
                                 minute: 'HH:mm',
                                 hour: 'HH:mm',
-                                day: 'DD MMM',
-                                week: 'DD MMM',
-                                month: 'MMM YYYY'
+                                day: 'jD jMMMM',
+                                week: 'jD jMMMM',
+                                month: 'jMMMM jYYYY'
                             }
                         },
                         grid: {
@@ -332,6 +300,7 @@ class GoldPriceTracker {
                             maxRotation: 0,
                             color: '#666',
                             font: {
+                                family: 'Vazir',
                                 size: 12
                             },
                             callback: (value) => {
@@ -348,6 +317,7 @@ class GoldPriceTracker {
                         ticks: {
                             color: '#666',
                             font: {
+                                family: 'Vazir',
                                 size: 12
                             },
                             callback: (value) => this.formatPrice(value)
@@ -373,8 +343,6 @@ class GoldPriceTracker {
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
         let step = this.calculateStep(filteredData.length, this.currentPeriod);
         const chartData = this.sampleData(filteredData, step);
-
-        console.log('Updating chart with data:', chartData.length, 'points');
 
         this.chart.data.labels = chartData.map(d => d.date);
         this.chart.data.datasets[0].data = chartData.map(d => ({
@@ -402,7 +370,7 @@ class GoldPriceTracker {
                 startDate = new Date(latestDataTime.getTime() - 7 * 24 * 60 * 60 * 1000);
                 break;
             case '1m':
-                startDate = new Date(latestDataTime.getTime() - 30 * 24 * 60 * 1000);
+                startDate = new Date(latestDataTime.getTime() - 30 * 24 * 60 * 60 * 1000);
                 break;
             case '3m':
                 startDate = new Date(latestDataTime.getTime() - 90 * 24 * 60 * 60 * 1000);
@@ -418,12 +386,13 @@ class GoldPriceTracker {
         }
 
         const filteredData = data.filter(d => d.date >= startDate && d.date <= latestDataTime);
-
+        
+        // If we don't have enough data for the selected period, return empty array
         const periodInDays = (latestDataTime - startDate) / (24 * 60 * 60 * 1000);
-        const dataSpanInDays = (filteredData.length > 0) ?
+        const dataSpanInDays = (filteredData.length > 0) ? 
             (filteredData[filteredData.length - 1].date - filteredData[0].date) / (24 * 60 * 60 * 1000) : 0;
-
-        if (dataSpanInDays < periodInDays * 0.5) {
+        
+        if (dataSpanInDays < periodInDays * 0.5) { // If we have less than 50% of the requested period
             return [];
         }
 
@@ -521,49 +490,48 @@ class GoldPriceTracker {
 
     handleZoom(direction) {
         const filteredData = this.filterDataByPeriod(this.rawData, this.currentPeriod);
-
+        
         if (direction === 'in') {
             this.currentZoomLevel = Math.min(4, this.currentZoomLevel + 1);
         } else {
             this.currentZoomLevel = Math.max(1, this.currentZoomLevel - 1);
         }
 
+        // Adjust time unit and step size based on zoom level and period
         let timeUnit = 'hour';
         let stepSize = 1;
 
         if (this.currentPeriod === '1d') {
             switch(this.currentZoomLevel) {
-                case 1: stepSize = 60; timeUnit = 'minute'; break;
-                case 2: stepSize = 30; timeUnit = 'minute'; break;
-                case 3: stepSize = 15; timeUnit = 'minute'; break;
-                case 4: stepSize = 1; timeUnit = 'minute'; break;
+                case 1: stepSize = 60; timeUnit = 'minute'; break; // 1 hour
+                case 2: stepSize = 30; timeUnit = 'minute'; break; // 30 minutes
+                case 3: stepSize = 15; timeUnit = 'minute'; break; // 15 minutes
+                case 4: stepSize = 1; timeUnit = 'minute'; break;  // 1 minute
             }
         } else {
             switch(this.currentZoomLevel) {
-                case 1: stepSize = 24; timeUnit = 'hour'; break;
-                case 2: stepSize = 12; timeUnit = 'hour'; break;
-                case 3: stepSize = 6; timeUnit = 'hour'; break;
-                case 4: stepSize = 1; timeUnit = 'hour'; break;
+                case 1: stepSize = 24; timeUnit = 'hour'; break;  // 1 day
+                case 2: stepSize = 12; timeUnit = 'hour'; break;  // 12 hours
+                case 3: stepSize = 6; timeUnit = 'hour'; break;   // 6 hours
+                case 4: stepSize = 1; timeUnit = 'hour'; break;   // 1 hour
             }
         }
 
+        // Update chart options
         this.chart.options.scales.x.time.unit = timeUnit;
         this.chart.options.scales.x.time.stepSize = stepSize;
 
+        // Calculate min and max values for Y axis
         const prices = filteredData.map(d => d.price);
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
-        const padding = (maxPrice - minPrice) * 0.1;
+        const padding = (maxPrice - minPrice) * 0.1; // 10% padding
 
-        const scale = this.calculateYAxisSteps(
-            minPrice - padding,
-            maxPrice + padding
-        );
+        // Update Y axis to ensure data stays in view
+        this.chart.options.scales.y.min = minPrice - padding;
+        this.chart.options.scales.y.max = maxPrice + padding;
 
-        this.chart.options.scales.y.min = scale.min;
-        this.chart.options.scales.y.max = scale.max;
-        this.chart.options.scales.y.ticks.stepSize = scale.step;
-
+        // Update the data with appropriate sampling
         const step = Math.max(1, Math.floor(filteredData.length / (200 * this.currentZoomLevel)));
         const chartData = this.sampleData(filteredData, step);
 
@@ -578,18 +546,13 @@ class GoldPriceTracker {
 
     formatPrice(price) {
         if (typeof price !== 'number' || isNaN(price)) return '-';
-        return price.toLocaleString('fa-IR') + ' ریال';
+        return (price * 10).toLocaleString('fa-IR') + ' ریال';
     }
 
     updateLastUpdate() {
         if (!this.lastDataTimestamp) return;
-
-        const time = this.lastDataTimestamp.toTimeString().slice(0, 8);
-        const dateStr = `${this.lastDataTimestamp.toDateString()} - ${time}`;
-
-        console.log('Updating last update:', this.lastDataTimestamp, 'Display:', dateStr);
-
-        document.getElementById('lastUpdate').textContent = dateStr;
+        const jalaliDate = moment(this.lastDataTimestamp).format('jYYYY/jMM/jDD HH:mm:ss');
+        document.getElementById('lastUpdate').textContent = jalaliDate;
     }
 
     showNoDataMessage() {
@@ -605,4 +568,4 @@ class GoldPriceTracker {
 
 document.addEventListener('DOMContentLoaded', () => {
     new GoldPriceTracker();
-});
+}); 
