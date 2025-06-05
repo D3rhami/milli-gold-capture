@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farvardin Date Conversion Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            direction: ltr;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .example-code {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre;
+            margin: 20px 0;
+        }
+        .note {
+            padding: 10px;
+            background-color: #ffffd0;
+            border-left: 4px solid #ffd700;
+            margin: 10px 0;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Farvardin Date Conversion Test</h1>
+    
+    <div class="note">
+        <p>The Iranian solar calendar (Jalali calendar) year is approximately 621-622 years less than the Gregorian calendar year. 
+        For example, the year 2023 in the Gregorian calendar corresponds roughly to the year 1401-1402 in the Iranian solar calendar.</p>
+    </div>
+    
+    <div id="library-status">Checking library status...</div>
+    
+    <div class="example-code">
+// Example usage:
+// farvardin.gregorianToSolar(2020, 4, 13, "string") => 1399-01-25
+// farvardin.gregorianToSolar(2020, 4, 13, "object") => { year: 1399, month: 1, day: 25 }
+// farvardin.gregorianToSolar(2020, 4, 13, "json") => {"year":1399,"month":1,"day":25}
+    </div>
+    
+    <div>
+        <h2>Test Predefined Dates</h2>
+        <table id="predefinedDates">
+            <tr>
+                <th>Gregorian Date</th>
+                <th>Solar Date (Jalali)</th>
+                <th>Raw Farvardin Result</th>
+            </tr>
+            <!-- Will be filled by JavaScript -->
+        </table>
+    </div>
+    
+    <div>
+        <h2>Custom Date Test</h2>
+        <form id="dateForm">
+            <label for="year">Year:</label>
+            <input type="number" id="year" min="1900" max="2100" value="2023">
+            
+            <label for="month">Month:</label>
+            <select id="month">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+            </select>
+            
+            <label for="day">Day:</label>
+            <input type="number" id="day" min="1" max="31" value="21">
+            
+            <button type="submit">Convert</button>
+        </form>
+        
+        <div class="result" id="customResult">
+            Result will appear here
+        </div>
+    </div>
+    
+    <!-- Load the fixed version of the library -->
+    <script src="libs/farvardin-fixed.js"></script>
+    
+    <script>
+        // Check if the library loaded correctly
+        document.addEventListener('DOMContentLoaded', function() {
+            const statusElement = document.getElementById('library-status');
+            
+            try {
+                // Try to access the farvardin object
+                if (typeof farvardin === 'undefined') {
+                    statusElement.innerHTML = '<span class="error">Error: farvardin library is not defined. Check if the library file is correctly loaded.</span>';
+                    return;
+                }
+                
+                // Try to use a conversion function to verify it works
+                const testResult = farvardin.gregorianToSolar(2020, 4, 13, "object");
+                if (testResult && testResult.year) {
+                    statusElement.innerHTML = '<span class="success">Library loaded successfully! Sample conversion: 2020/04/13 → ' + 
+                        testResult.year + '/' + String(testResult.month).padStart(2, '0') + '/' + String(testResult.day).padStart(2, '0') + '</span>';
+                    
+                    // Continue with testing functions
+                    testPredefinedDates();
+                } else {
+                    statusElement.innerHTML = '<span class="error">Error: Library loaded but conversion functions are not working correctly.</span>';
+                }
+            } catch (error) {
+                statusElement.innerHTML = '<span class="error">Error loading library: ' + error.message + '</span>';
+            }
+        });
+
+        // Test predefined dates
+        function testPredefinedDates() {
+            const testDates = [
+                new Date(2023, 0, 1),   // Jan 1, 2023
+                new Date(2023, 2, 21),  // Mar 21, 2023 (Nowruz)
+                new Date(2023, 5, 15),  // Jun 15, 2023
+                new Date(2023, 8, 22),  // Sep 22, 2023
+                new Date(2023, 11, 31), // Dec 31, 2023
+                new Date(2025, 5, 4)    // Jun 4, 2025 (test data date)
+            ];
+            
+            const table = document.getElementById('predefinedDates');
+            
+            testDates.forEach(date => {
+                try {
+                    // Get the direct library result without any modification
+                    const year = date.getFullYear();
+                    const month = date.getMonth() + 1;
+                    const day = date.getDate();
+                    
+                    const directLibraryResult = farvardin.gregorianToSolar(year, month, day, "object");
+                    
+                    const row = table.insertRow(-1);
+                    const cell1 = row.insertCell(0);
+                    const cell2 = row.insertCell(1);
+                    const cell3 = row.insertCell(2);
+                    
+                    cell1.textContent = date.toDateString();
+                    
+                    if (directLibraryResult && directLibraryResult.year) {
+                        cell2.textContent = `${directLibraryResult.year}/${String(directLibraryResult.month).padStart(2, '0')}/${String(directLibraryResult.day).padStart(2, '0')}`;
+                        cell3.textContent = JSON.stringify(directLibraryResult);
+                    } else {
+                        cell2.innerHTML = '<span class="error">Conversion failed</span>';
+                        cell3.textContent = String(directLibraryResult);
+                    }
+                } catch (error) {
+                    const row = table.insertRow(-1);
+                    const cell1 = row.insertCell(0);
+                    const cell2 = row.insertCell(1);
+                    const cell3 = row.insertCell(2);
+                    
+                    cell1.textContent = date.toDateString();
+                    cell2.innerHTML = '<span class="error">Error</span>';
+                    cell3.textContent = error.message;
+                }
+            });
+        }
+
+        // Handle custom date form
+        document.getElementById('dateForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const year = parseInt(document.getElementById('year').value);
+            const month = parseInt(document.getElementById('month').value);
+            const day = parseInt(document.getElementById('day').value);
+            
+            const date = new Date(year, month, day);
+            
+            try {
+                // Get the direct library result
+                const directLibraryResult = farvardin.gregorianToSolar(year, month + 1, day, "object");
+                
+                const resultDiv = document.getElementById('customResult');
+                
+                if (directLibraryResult && directLibraryResult.year) {
+                    resultDiv.innerHTML = `
+                        <p><strong>Gregorian Date:</strong> ${date.toDateString()}</p>
+                        <p><strong>Solar Date (Jalali):</strong> ${directLibraryResult.year}/${String(directLibraryResult.month).padStart(2, '0')}/${String(directLibraryResult.day).padStart(2, '0')}</p>
+                        <p><strong>Raw Farvardin Result:</strong> ${JSON.stringify(directLibraryResult)}</p>
+                        <p><strong>Direct Library Call:</strong> farvardin.gregorianToSolar(${year}, ${month + 1}, ${day}, "object")</p>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p><strong>Gregorian Date:</strong> ${date.toDateString()}</p>
+                        <p class="error">Conversion failed: ${String(directLibraryResult)}</p>
+                    `;
+                }
+            } catch (error) {
+                const resultDiv = document.getElementById('customResult');
+                resultDiv.innerHTML = `
+                    <p><strong>Gregorian Date:</strong> ${date.toDateString()}</p>
+                    <p class="error">Error: ${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 
