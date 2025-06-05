@@ -3,76 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نمودار میلی گلد - قیمت لحظه‌ای طلا ۱۸ عیار</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <title>نمودار قیمت طلا</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
+    <div class="container mt-4">
         <div class="card">
-            <div class="header">
-                <h1 class="title">میلی گلد</h1>
-                <p class="subtitle">قیمت لحظه‌ای طلا ۱۸ عیار</p>
-            </div>
-
-            <div class="price-info">
-                <div class="price-box">
-                    <div class="price-label">قیمت فعلی</div>
-                    <div class="price-value" id="currentPrice">در حال بارگذاری...</div>
-                    <div class="price-change" id="priceChange"></div>
-                </div>
-
-                <div class="price-box">
-                    <div class="price-label">بالاترین امروز</div>
-                    <div class="price-value" id="highPrice">-</div>
-                </div>
-
-                <div class="price-box">
-                    <div class="price-label">پایین‌ترین امروز</div>
-                    <div class="price-value" id="lowPrice">-</div>
-                </div>
-
-                <div class="price-box">
-                    <div class="price-label">قیمت باز شدن</div>
-                    <div class="price-value" id="openPrice">-</div>
+            <div class="card-header">
+                <h2 class="text-center">قیمت طلا ۱۸ عیار</h2>
+                <div class="total-price">
+                    <span id="currentPrice">...</span>
+                    <span class="currency">ریال</span>
                 </div>
             </div>
-
-            <div class="chart-container">
-                <div class="chart-header">
-                    <h2 class="chart-title">نمودار قیمت طلا</h2>
-                    <div class="time-buttons">
-                        <button class="time-btn active" data-period="1d">۱ روز</button>
-                        <button class="time-btn" data-period="5d">۵ روز</button>
-                        <button class="time-btn" data-period="1w">۱ هفته</button>
-                        <button class="time-btn" data-period="1m">۱ ماه</button>
-                        <button class="time-btn" data-period="3m">۳ ماه</button>
-                        <button class="time-btn" data-period="6m">۶ ماه</button>
-                        <button class="time-btn" data-period="1y">۱ سال</button>
-                        <button class="time-btn" data-period="all">همه</button>
+            <div class="card-body">
+                <div class="chart-controls mb-3">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary" data-period="1h">۱ ساعت</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="1d">۱ روز</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="7d">۷ روز</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="1m">۱ ماه</button>
+                        <button type="button" class="btn btn-outline-primary" data-period="1y">۱ سال</button>
+                    </div>
+                    <div class="chart-type-toggle">
+                        <button type="button" class="btn btn-outline-secondary" data-type="line">
+                            <i class="fas fa-chart-line"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-type="bar">
+                            <i class="fas fa-chart-bar"></i>
+                        </button>
                     </div>
                 </div>
-
-                <div class="chart-wrapper">
+                <div class="chart-container">
                     <canvas id="priceChart"></canvas>
                 </div>
-            </div>
-
-            <div class="status-bar">
-                <div class="last-update">
-                    <div class="status-dot"></div>
-                    <span>آخرین بروزرسانی: <span id="lastUpdate">در حال بارگذاری...</span></span>
+                <div class="progress mt-3" style="height: 2px;">
+                    <div id="updateProgress" class="progress-bar" role="progressbar" style="width: 0%"></div>
                 </div>
-                <div>
-                    منبع داده‌ها: GitHub Repository
+                <div class="text-muted text-center mt-2" style="font-size: 0.8rem;">
+                    <span id="lastUpdate">در حال بارگذاری...</span>
                 </div>
-                <div class="progress-bar" id="progressBar"></div>
             </div>
         </div>
     </div>
 
-    <script src="libs/farvardin-fixed.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.1/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/js/all.min.js"></script>
     <script src="script.js"></script>
 </body>
-</html>
+</html> 
