@@ -4,59 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نمودار قیمت طلا</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="tooltip.css">
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="card-header">
-                <h2>قیمت طلا ۱۸ عیار</h2>
-                <div class="total-price">
-                    <span id="currentPrice">...</span>
-                    <span class="currency">ریال</span>
-                </div>
-            </div>
-            <div class="card-body">
-                <div class="chart-controls">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn" data-period="1h">۱ ساعت</button>
-                        <button type="button" class="btn active" data-period="1d">۱ روز</button>
-                        <button type="button" class="btn" data-period="7d">۷ روز</button>
-                        <button type="button" class="btn" data-period="1m">۱ ماه</button>
-                        <button type="button" class="btn" data-period="1y">۱ سال</button>
-                    </div>
-                    <div class="chart-type-toggle">
-                        <button type="button" class="btn active" data-type="line">
-                            <i class="fas fa-chart-line"></i>
-                        </button>
-                        <button type="button" class="btn" data-type="bar">
-                            <i class="fas fa-chart-bar"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="chart-container">
-                    <div id="loadingOverlay" class="loading-overlay">
-                        <div class="spinner"></div>
-                        <div class="loading-text">در حال بارگذاری...</div>
-                    </div>
-                    <canvas id="priceChart"></canvas>
-                </div>
-                
-                <div class="progress-container">
-                    <div id="updateProgress" class="progress-bar"></div>
-                </div>
-                
-                <div class="status-bar">
-                    <div>آخرین بروزرسانی: <span id="lastUpdate">در حال بارگذاری...</span></div>
-                    <div>منبع داده‌ها: GitHub</div>
-                </div>
-            </div>
+    <div id="chart-container">
+        <div class="toolbar">
+            <button id="one_hour">۱ ساعت</button>
+            <button id="one_day">۱ روز</button>
+            <button id="one_week">۱ هفته</button>
+            <button id="one_month">۱ ماه</button>
+            <label class="checkbox-container">
+                <input type="checkbox" id="fee_toggle">
+                <span class="checkmark"></span>
+                کارمزد
+            </label>
         </div>
+        <div id="time-info">
+            <span id="current-time">زمان فعلی: --</span>
+            <span id="last-data-time">آخرین داده: --</span>
+            <span id="data-status" class="status-ok"></span>
+        </div>
+        <div id="chart"></div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="libs/farvardin-fixed.js"></script>
+    <script src="load_data.js"></script>
+    <script src="tooltip.js"></script>
+    <script src="chart.js"></script>
     <script src="script.js"></script>
 </body>
 </html> 
