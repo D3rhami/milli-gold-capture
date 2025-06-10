@@ -9,7 +9,11 @@ console.log('⚙️ Default range set to:', currentRange);
 
 loadInitialData()
     .then(data => {
-        allChartData = data.map(item => [item[0], item[1] * (window.feeEnabled ? fee : 1) * fac]);
+        allChartData = [];
+        const multiplier = (window.feeEnabled ? fee : 1) * fac;
+        for (let i = 0; i < data.length; i++) {
+            allChartData.push([data[i][0], data[i][1] * multiplier]);
+        }
         createInitialChart();
         updateLastDataTime();
         filterData(currentRange);
@@ -234,7 +238,11 @@ async function filterData(range) {
     console.log(`🎨 Filtering data for range: ${range}`);
     
     const rawData = await loadDataForRange(range);
-    allChartData = rawData.map(item => [item[0], item[1] * (window.feeEnabled ? fee : 1) * fac]);
+    allChartData = [];
+    const multiplier = (window.feeEnabled ? fee : 1) * fac;
+    for (let i = 0; i < rawData.length; i++) {
+        allChartData.push([rawData[i][0], rawData[i][1] * multiplier]);
+    }
     
     if (allChartData.length === 0) {
         console.warn('⚠️ No data available for the selected range');

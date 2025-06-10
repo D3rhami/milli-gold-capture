@@ -1,7 +1,6 @@
 function getLastDays(days) {
     const dates = [];
-    // Use the most recent data file date as the starting point
-    const mostRecentDate = new Date('2025-06-10'); // Based on available files
+    const mostRecentDate = new Date();
     
     for (let i = 0; i < days; i++) {
         const date = new Date(mostRecentDate);
@@ -29,13 +28,20 @@ async function loadCsvFile(filename) {
         const data = [];
         
         for (let i = 1; i < lines.length; i++) {
-            const parts = lines[i].split(',');
-            if (parts.length === 2) {
-                const date = new Date(parts[0]).getTime();
-                const price = parseFloat(parts[1]);
-                if (!isNaN(date) && !isNaN(price)) {
-                    data.push([date, price]);
-                }
+            const line = lines[i].trim();
+            if (!line) continue;
+            
+            const commaIndex = line.indexOf(',');
+            if (commaIndex === -1) continue;
+            
+            const dateStr = line.substring(0, commaIndex);
+            const priceStr = line.substring(commaIndex + 1);
+            
+            const date = new Date(dateStr).getTime();
+            const price = parseFloat(priceStr);
+            
+            if (!isNaN(date) && !isNaN(price)) {
+                data.push([date, price]);
             }
         }
         
@@ -100,18 +106,33 @@ async function loadDataForRange(range) {
     
     const allData = [];
     let loadedFiles = 0;
+    let foundFiles = 0;
     
     for (const filename of filesToLoad) {
         const data = await loadCsvFile(filename);
-        allData.push(...data);
+        if (data.length > 0) {
+            for (let i = 0; i < data.length; i++) {
+                allData.push(data[i]);
+            }
+            foundFiles++;
+        }
         loadedFiles++;
-        console.log(`📈 Progress: ${loadedFiles}/${filesToLoad.length} files loaded`);
+        console.log(`📈 Progress: ${loadedFiles}/${filesToLoad.length} files loaded (${foundFiles} found)`);
     }
     
     allData.sort((a, b) => a[0] - b[0]);
     
-    console.log(`🎯 Total data points loaded: ${allData.length}`);
+    if (allData.length === 0) {
+        console.log('⚠️ No data found for any of the requested files');
+        return [];
+    }
+    
+    console.log(`🎯 Total data points loaded: ${allData.length} from ${foundFiles} available files`);
     console.log(`⏱️ Data range: ${new Date(allData[0]?.[0]).toLocaleString('fa-IR')} to ${new Date(allData[allData.length - 1]?.[0]).toLocaleString('fa-IR')}`);
+    
+    if (foundFiles < filesToLoad.length) {
+        console.log(`ℹ️ Showing available data: ${foundFiles}/${filesToLoad.length} files found - displaying what we have`);
+    }
     
     return allData;
 }
