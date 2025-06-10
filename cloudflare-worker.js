@@ -196,12 +196,170 @@ async function pushCsvToGithub(filename, content, sha, env) {
 
 function jaliMsg(price) {
     const tehranTime = getTehranDateTime();
-    const dateStr = formatTehranTime(tehranTime, 'date');
-    return `📆 ${dateStr} 🪙${price} . add by cloudflare worker`;
+    const gregorianDateStr = formatTehranTime(tehranTime, 'date');
+    const timeStr = formatTehranTime(tehranTime).split(' ')[1];
+    
+    // Convert Gregorian to Solar (Persian) date
+    const [year, month, day] = gregorianDateStr.split('-').map(Number);
+    const solarDate = gregorianToSolar(year, month, day, 'array');
+    
+    // Persian month names
+    const persianMonths = {
+        1: 'فروردین',
+        2: 'اردیبهشت',
+        3: 'خرداد',
+        4: 'تیر',
+        5: 'مرداد',
+        6: 'شهریور',
+        7: 'مهر',
+        8: 'آبان',
+        9: 'آذر',
+        10: 'دی',
+        11: 'بهمن',
+        12: 'اسفند'
+    };
+    
+    const persianMonthName = persianMonths[solarDate[1]];
+    const solarDateStr = `${solarDate[2]} ${persianMonthName} ${solarDate[0]}`;
+    
+    return `📆 ${solarDateStr} ⏰ ${timeStr} 🪙${price} . add by cloudflare worker`;
+}
+
+// Persian calendar conversion functions (simplified version for Cloudflare Worker)
+function gregorianToSolar(year, month, day, formatType) {
+    if (formatType === undefined) {
+        formatType = "array";
+    }
+    
+    if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31) {
+        return "Invalid Input";
+    }
+    
+    let persianYear = year - 621;
+    let persianMonth, persianDay;
+    
+    if (month < 3 || (month === 3 && day < 21)) {
+        persianYear--;
+    }
+    
+    if (month === 1) {
+        if (day <= 20) {
+            persianMonth = 10;
+            persianDay = day + 10;
+        } else {
+            persianMonth = 11;
+            persianDay = day - 20;
+        }
+    } else if (month === 2) {
+        if (day <= 19) {
+            persianMonth = 11;
+            persianDay = day + 11;
+        } else {
+            persianMonth = 12;
+            persianDay = day - 19;
+        }
+    } else if (month === 3) {
+        if (day <= 20) {
+            persianMonth = 12;
+            persianDay = day + 9;
+        } else {
+            persianMonth = 1;
+            persianDay = day - 20;
+        }
+    } else if (month === 4) {
+        if (day <= 20) {
+            persianMonth = 1;
+            persianDay = day + 11;
+        } else {
+            persianMonth = 2;
+            persianDay = day - 20;
+        }
+    } else if (month === 5) {
+        if (day <= 21) {
+            persianMonth = 2;
+            persianDay = day + 10;
+        } else {
+            persianMonth = 3;
+            persianDay = day - 21;
+        }
+    } else if (month === 6) {
+        if (day <= 21) {
+            persianMonth = 3;
+            persianDay = day + 10;
+        } else {
+            persianMonth = 4;
+            persianDay = day - 21;
+        }
+    } else if (month === 7) {
+        if (day <= 22) {
+            persianMonth = 4;
+            persianDay = day + 9;
+        } else {
+            persianMonth = 5;
+            persianDay = day - 22;
+        }
+    } else if (month === 8) {
+        if (day <= 22) {
+            persianMonth = 5;
+            persianDay = day + 9;
+        } else {
+            persianMonth = 6;
+            persianDay = day - 22;
+        }
+    } else if (month === 9) {
+        if (day <= 22) {
+            persianMonth = 6;
+            persianDay = day + 9;
+        } else {
+            persianMonth = 7;
+            persianDay = day - 22;
+        }
+    } else if (month === 10) {
+        if (day <= 22) {
+            persianMonth = 7;
+            persianDay = day + 8;
+        } else {
+            persianMonth = 8;
+            persianDay = day - 22;
+        }
+    } else if (month === 11) {
+        if (day <= 21) {
+            persianMonth = 8;
+            persianDay = day + 9;
+        } else {
+            persianMonth = 9;
+            persianDay = day - 21;
+        }
+    } else if (month === 12) {
+        if (day <= 21) {
+            persianMonth = 9;
+            persianDay = day + 9;
+        } else {
+            persianMonth = 10;
+            persianDay = day - 21;
+        }
+    }
+    
+    if (formatType === "array") {
+        return [persianYear, persianMonth, persianDay];
+    } else if (formatType === "string") {
+        return persianYear + "-" + 
+            (persianMonth <= 9 ? "0" + persianMonth : persianMonth) + "-" + 
+            (persianDay <= 9 ? "0" + persianDay : persianDay);
+    } else {
+        return [persianYear, persianMonth, persianDay];
+    }
 }
 
 async function processGoldData(env) {
     _log("Starting gold data processing");
+    
+    // Check if worker is paused
+    if (env.WORKER_PAUSED === 'true') {
+        const msg = "Worker is paused. Skipping data collection.";
+        _log(msg);
+        return { success: false, error: msg, paused: true };
+    }
     
     if (!env.GITHUB_TOKEN) {
         const errorMsg = "GITHUB_TOKEN not found in environment variables";

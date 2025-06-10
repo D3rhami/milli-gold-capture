@@ -7,6 +7,8 @@ crons = ["* * * * *"]
 
 [env.production.vars]
 GITHUB_TOKEN = ""
+WORKER_PAUSED = "false"
 
 [env.staging.vars]
-GITHUB_TOKEN = "" 
+GITHUB_TOKEN = ""
+WORKER_PAUSED = "false" 
