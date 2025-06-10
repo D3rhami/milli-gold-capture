@@ -18,7 +18,7 @@ function getLastDays(days) {
 async function loadCsvFile(filename) {
     try {
         console.log(`📥 Fetching: ${filename}.csv`);
-        const response = await fetch(`./database/${filename}.csv`);
+        const response = await fetch(`https://raw.githubusercontent.com/D3rhami/milli-gold-capture/master/database/${filename}.csv`);
         if (!response.ok) {
             console.warn(`⚠️ File ${filename}.csv not found`);
             return [];
