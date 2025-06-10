@@ -252,6 +252,7 @@ async function filterData(range) {
     updateLastDataTime();
     
     const latestTimestamp = allChartData.length > 0 ? allChartData[allChartData.length - 1][0] : new Date().getTime();
+    const earliestTimestamp = allChartData.length > 0 ? allChartData[0][0] : new Date().getTime();
     let startTime, endTime;
 
     endTime = latestTimestamp;
@@ -264,6 +265,11 @@ async function filterData(range) {
         startTime = latestTimestamp - (7 * 24 * 60 * 60 * 1000);
     } else if (range === '1m') {
         startTime = latestTimestamp - (30 * 24 * 60 * 60 * 1000);
+    }
+
+    if (startTime < earliestTimestamp) {
+        startTime = earliestTimestamp;
+        console.log(`ℹ️ Adjusted start time to earliest available data: ${new Date(startTime).toLocaleString('fa-IR')}`);
     }
 
     let filteredAndResampledData = [];
