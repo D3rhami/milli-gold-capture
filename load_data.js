@@ -34,8 +34,8 @@ async function loadCsvFile(filename) {
             const commaIndex = line.indexOf(',');
             if (commaIndex === -1) continue;
             
-            const dateStr = line.substring(0, commaIndex);
-            const priceStr = line.substring(commaIndex + 1);
+            const priceStr = line.substring(0, commaIndex);
+            const dateStr = line.substring(commaIndex + 1);
             
             const date = new Date(dateStr).getTime();
             const price = parseFloat(priceStr);
