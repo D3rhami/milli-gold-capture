@@ -9,4 +9,4 @@ crons = ["* * * * *"]
 GITHUB_TOKEN = ""
 
 [env.staging.vars]
-GITHUB_TOKEN = ""
+GITHUB_TOKEN = "" 
