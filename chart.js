@@ -165,7 +165,7 @@ function createInitialChart() {
             },
             labels: {
                 formatter: function (val) {
-                    return val.toLocaleString('en-US');
+                    return val.toLocaleString();
                 },
                 style: {
                     fontSize: '14px',
@@ -259,12 +259,16 @@ async function filterData(range) {
     
     if (range === '1h') {
         startTime = latestTimestamp - (60 * 60 * 1000);
+        console.log(`🕐 1h filter: ${new Date(startTime).toLocaleString('fa-IR')} to ${new Date(latestTimestamp).toLocaleString('fa-IR')}`);
     } else if (range === '1d') {
         startTime = latestTimestamp - (24 * 60 * 60 * 1000);
+        console.log(`📅 1d filter: ${new Date(startTime).toLocaleString('fa-IR')} to ${new Date(latestTimestamp).toLocaleString('fa-IR')}`);
     } else if (range === '1w') {
         startTime = latestTimestamp - (7 * 24 * 60 * 60 * 1000);
+        console.log(`📊 1w filter: ${new Date(startTime).toLocaleString('fa-IR')} to ${new Date(latestTimestamp).toLocaleString('fa-IR')}`);
     } else if (range === '1m') {
         startTime = latestTimestamp - (30 * 24 * 60 * 60 * 1000);
+        console.log(`📆 1m filter: ${new Date(startTime).toLocaleString('fa-IR')} to ${new Date(latestTimestamp).toLocaleString('fa-IR')}`);
     }
 
     if (startTime < earliestTimestamp) {
@@ -274,6 +278,7 @@ async function filterData(range) {
 
     let filteredAndResampledData = [];
     const rawFilteredData = allChartData.filter(item => item[0] >= startTime);
+    console.log(`🔍 Filtered ${allChartData.length} records to ${rawFilteredData.length} records for ${range}`);
 
     if (range === '1h') {
         const roundedData = new Map();
@@ -330,12 +335,8 @@ async function filterData(range) {
         filteredAndResampledData = rawFilteredData;
     }
 
-    if (filteredAndResampledData.length > 0) {
-        const firstFilteredTimestamp = filteredAndResampledData[0][0];
-        const lastFilteredTimestamp = filteredAndResampledData[filteredAndResampledData.length - 1][0];
-        startTime = firstFilteredTimestamp;
-        endTime = lastFilteredTimestamp;
-    }
+    console.log(`📈 Final filtered data: ${filteredAndResampledData.length} points for ${range}`);
+    console.log(`⏰ Final time range: ${new Date(startTime).toLocaleString('fa-IR')} to ${new Date(endTime).toLocaleString('fa-IR')}`);
 
     let currentMinPrice = Infinity;
     let currentMaxPrice = -Infinity;
@@ -508,6 +509,132 @@ async function filterData(range) {
     });
     
     console.log(`📊 Chart updated for ${range} with ${filteredAndResampledData.length} data points`);
+}
+
+function updateChart(newData) {
+    if (!chart || newData.length === 0) return;
+    
+    allChartData = [];
+    const multiplier = (window.feeEnabled ? fee : 1) * fac;
+    for (let i = 0; i < newData.length; i++) {
+        allChartData.push([newData[i][0], newData[i][1] * multiplier]);
+    }
+    
+    let minPrice = Infinity;
+    let maxPrice = -Infinity;
+    let minPriceTime = 0;
+    let maxPriceTime = 0;
+    
+    allChartData.forEach(item => {
+        const time = item[0];
+        const price = item[1];
+        if (price < minPrice) {
+            minPrice = price;
+            minPriceTime = time;
+        }
+        if (price > maxPrice) {
+            maxPrice = price;
+            maxPriceTime = time;
+        }
+    });
+    
+    const priceRange = maxPrice - minPrice;
+    const padding = priceRange * 0.1;
+    
+    let roundingIncrement;
+    if (maxPrice >= 10000000) {
+        roundingIncrement = 10000;
+    } else if (maxPrice >= 1000000) {
+        roundingIncrement = 1000;
+    } else {
+        roundingIncrement = 100;
+    }
+    
+    const yMin = Math.floor((minPrice - padding) / roundingIncrement) * roundingIncrement;
+    const yMax = Math.ceil((maxPrice + padding) / roundingIncrement) * roundingIncrement;
+    
+    const xAxisRange = allChartData[allChartData.length - 1][0] - allChartData[0][0];
+    const leftThreshold = allChartData[0][0] + (xAxisRange * 0.05);
+    const rightThreshold = allChartData[allChartData.length - 1][0] - (xAxisRange * 0.05);
+    
+    let effectiveMinOffsetX = 0;
+    let effectiveMaxOffsetX = 0;
+    
+    if (minPriceTime < leftThreshold) {
+        effectiveMinOffsetX = 40;
+    } else if (minPriceTime > rightThreshold) {
+        effectiveMinOffsetX = -40;
+    }
+    
+    if (maxPriceTime < leftThreshold) {
+        effectiveMaxOffsetX = 40;
+    } else if (maxPriceTime > rightThreshold) {
+        effectiveMaxOffsetX = -40;
+    }
+    
+    chart.updateOptions({
+        series: [{
+            data: allChartData
+        }],
+        xaxis: {
+            min: allChartData[0][0],
+            max: allChartData[allChartData.length - 1][0]
+        },
+        yaxis: {
+            min: yMin,
+            max: yMax
+        },
+        annotations: {
+            points: [
+                {
+                    x: minPriceTime,
+                    y: minPrice,
+                    marker: {
+                        size: 2,
+                        fillColor: '#0000FF',
+                        strokeColor: 'transparent',
+                        radius: 2,
+                    },
+                    label: {
+                        borderColor: 'transparent',
+                        offsetY: lower_y_off,
+                        offsetX: effectiveMinOffsetX,
+                        style: {
+                            color: '#000',
+                            background: 'transparent',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                        },
+                        text: `\u200fریال \u200e${minPrice.toLocaleString('en-US')}`,
+                    }
+                },
+                {
+                    x: maxPriceTime,
+                    y: maxPrice,
+                    marker: {
+                        size: 2,
+                        fillColor: '#0000FF',
+                        strokeColor: 'transparent',
+                        radius: 2,
+                    },
+                    label: {
+                        borderColor: 'transparent',
+                        offsetY: higher_y_off,
+                        offsetX: effectiveMaxOffsetX,
+                        style: {
+                            color: '#000',
+                            background: 'transparent',
+                            fontSize: '14px',
+                            fontWeight: '400',
+                        },
+                        text: `\u200fریال \u200e${maxPrice.toLocaleString('en-US')}`,
+                    }
+                }
+            ]
+        }
+    });
+    
+    updateLastDataTime();
 }
 
 document.addEventListener('DOMContentLoaded', function() {

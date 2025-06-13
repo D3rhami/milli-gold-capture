@@ -71,3 +71,24 @@ body {
     color: #ef4444 !important;
     font-weight: bold;
 }
+
+#progress-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    width: 100%;
+    background-color: transparent;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+#progress-inner {
+    height: 100%;
+    background-color: #5e35b1;
+    width: 0%;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
